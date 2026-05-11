@@ -401,6 +401,10 @@ body {
   min-height:0;
   height:100%;
 }
+/* Pastikan gambar di dalam Leaflet tidak terkena filter warna dari tema dark mode */
+.leaflet-tile-container img {
+    filter: none !important;
+}
 .nearby-map-label {
   color: var(--white);
   font-size: 14px;
@@ -439,6 +443,11 @@ body {
   width:70px; height:70px; border-radius:12px;
   background: linear-gradient(135deg, var(--primary-dark), var(--primary));
   flex-shrink:0; overflow:hidden;
+}
+#page-nearby {
+  max-width: 1200px !important; /* Membuka batas dinding yang menjepit */
+  width: 90% !important;        /* Mengambil 90% lebar layar */
+  margin: 0 auto;               /* Memastikan tetap berada di tengah layar */
 }
 .nearby-item-img img { width:100%; height:100%; object-fit:cover; }
 .nearby-item-info { flex:1; }
