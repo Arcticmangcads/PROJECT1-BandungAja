@@ -232,7 +232,10 @@
   </div>
   <div class="nearby-layout">
     <div class="nearby-list" id="nearbyList"></div>
-    <div id="nearby-map"></div>
+    <div class="nearby-map-wrapper">
+      <div class="nearby-map-label">Peta Bandung</div>
+      <div id="nearby-map"></div>
+    </div>
   </div>
 </div>
 
@@ -378,7 +381,43 @@
       <input class="itin-form-input" placeholder="••••••••" type="password">
     </div>
     <button class="btn-create-itin" onclick="closeModal('loginModal');showToast('Berhasil masuk! Selamat menjelajah 🎉')">Masuk Sekarang</button>
-    <div style="text-align:center;margin-top:16px;font-size:13px;color:var(--text-muted)">Belum punya akun? <span style="color:var(--secondary);cursor:pointer;font-weight:600">Daftar Gratis</span></div>
+    <div style="text-align:center;margin-top:16px;font-size:13px;color:var(--text-muted)">Belum punya akun? <span style="color:var(--secondary);cursor:pointer;font-weight:600" onclick="closeModal('loginModal');showModal('registerModal')">Daftar Gratis</span></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="registerModal" onclick="if(event.target===this)closeModal('registerModal')">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('registerModal')">✕</button>
+    <div class="modal-title">Daftar Gratis 🎉</div>
+    <div class="modal-sub">Buat akun dan mulai simpan itinerary & destinasi favoritmu.</div>
+    
+    <!-- Nama Depan -->
+    <div class="itin-form-row">
+      <label class="itin-form-label">Nama Depan</label>
+      <input class="itin-form-input" placeholder="Masukkan nama depan Anda" id="first-name">
+    </div>
+
+    <!-- Nama Belakang -->
+    <div class="itin-form-row">
+      <label class="itin-form-label">Nama Belakang</label>
+      <input class="itin-form-input" placeholder="Masukkan nama belakang Anda" id="last-name">
+    </div>
+
+    <!-- Email -->
+    <div class="itin-form-row">
+      <label class="itin-form-label">Email</label>
+      <input class="itin-form-input" placeholder="email@example.com" type="email" id="email">
+    </div>
+
+    <!-- Password -->
+    <div class="itin-form-row">
+      <label class="itin-form-label">Kata Sandi</label>
+      <input class="itin-form-input" placeholder="Minimal 8 karakter" type="password" id="password">
+    </div>
+
+    <button class="btn-create-itin" onclick="handleRegister()">Buat Akun Sekarang</button>
+
+    <div style="text-align:center;margin-top:16px;font-size:13px;color:var(--text-muted)">Sudah punya akun? <span style="color:var(--secondary);cursor:pointer;font-weight:600" onclick="closeModal('registerModal');showModal('loginModal')">Masuk</span></div>
   </div>
 </div>
 
@@ -411,6 +450,7 @@
     <button class="btn-create-itin" onclick="closeModal('createItinModal');createItinerary();showToast('Itinerary berhasil dibuat! 🎉')">Buat Itinerary</button>
   </div>
 </div>
+
 
 <!-- TOAST -->
 <div class="toast" id="toast">

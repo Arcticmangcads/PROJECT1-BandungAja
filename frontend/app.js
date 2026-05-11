@@ -83,7 +83,10 @@ function showPage(pageId) {
     setTimeout(() => { bar.style.width = '0%'; }, 400);
     
     // Init page-specific stuff
-    if (pageId === 'nearby') initNearbyMap();
+    if (pageId === 'nearby') {
+      initNearbyMap();
+      if (nearbyMap) setTimeout(() => nearbyMap.invalidateSize(), 120);
+    }
     if (pageId === 'search') filterPlaces();
     if (pageId === 'saved') renderSaved();
     if (pageId === 'itinerary') renderItineraries();
@@ -98,6 +101,135 @@ function showPage(pageId) {
       });
     }, 100);
   }, 200);
+}
+
+/* ===================================================
+   Toggle show/hide password
+   =================================================== */
+function togglePassword() {
+  const input  = document.getElementById('password');
+  const icon   = document.getElementById('eye-icon');
+  const button = document.getElementById('toggle-pw');
+
+  const isHidden = input.type === 'password';
+  input.type = isHidden ? 'text' : 'password';
+
+  // Ganti ikon mata
+  icon.innerHTML = isHidden
+    ? `<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8
+         a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4
+         c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19
+         m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+       <line x1="1" y1="1" x2="23" y2="23"/>`
+    : `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+       <circle cx="12" cy="12" r="3"/>`;
+
+  button.setAttribute(
+    'aria-label',
+    isHidden ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'
+  );
+}
+
+
+/* ===================================================
+   Password strength checker
+   =================================================== */
+function checkStrength(value) {
+  const bars = [
+    document.getElementById('bar1'),
+    document.getElementById('bar2'),
+    document.getElementById('bar3'),
+    document.getElementById('bar4'),
+  ];
+  const hint = document.getElementById('pw-hint');
+
+  // Reset semua bar
+  bars.forEach(bar => (bar.className = ''));
+
+  if (!value) {
+    hint.textContent = '';
+    return;
+  }
+
+  // Hitung skor kekuatan
+  let score = 0;
+  if (value.length >= 8)  score++;
+  if (value.length >= 12) score++;
+  if (/[A-Z]/.test(value) && /[a-z]/.test(value)) score++;
+  if (/[0-9]/.test(value) && /[^a-zA-Z0-9]/.test(value)) score++;
+
+  const classMap  = ['weak', 'weak', 'medium', 'strong'];
+  const labelMap  = ['Terlalu pendek', 'Lemah', 'Cukup kuat', 'Kuat 💪'];
+  const colorMap  = ['#e24b4a', '#e24b4a', '#ef9f27', '#c8f135'];
+
+  // Warnai bar sesuai skor
+  for (let i = 0; i < score; i++) {
+    bars[i].className = classMap[score - 1];
+  }
+
+  hint.textContent  = labelMap[score - 1] || '';
+  hint.style.color  = colorMap[score - 1] || '#3d5268';
+}
+
+
+/* ===================================================
+   Validasi & submit form
+   =================================================== */
+function handleRegister() {
+  const firstName = document.getElementById('first-name').value.trim();
+  const lastName  = document.getElementById('last-name').value.trim();
+  const email     = document.getElementById('email').value.trim();
+  const password  = document.getElementById('password').value;
+
+  // Cek field kosong
+  if (!firstName || !lastName || !email || !password) {
+    showToast('Harap isi semua kolom terlebih dahulu.');
+    return;
+  }
+
+  // Validasi format email
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    showToast('Format email tidak valid.');
+    return;
+  }
+
+  // Validasi panjang password
+  if (password.length < 8) {
+    showToast('Kata sandi harus minimal 8 karakter.');
+    return;
+  }
+
+  // Berhasil
+  closeModal('registerModal');
+  showToast(`Akun berhasil dibuat! Selamat datang, ${firstName} 🎉`);
+}
+
+
+/* ===================================================
+   Helper: tampilkan pesan error
+   =================================================== */
+function showError(message) {
+  // Hapus error lama jika ada
+  const existing = document.getElementById('error-msg');
+  if (existing) existing.remove();
+
+  const el = document.createElement('p');
+  el.id = 'error-msg';
+  el.textContent = message;
+  el.style.cssText = `
+    color: #e24b4a;
+    font-size: 12.5px;
+    margin-top: 0.5rem;
+    text-align: center;
+    animation: fadeUp 0.2s ease;
+  `;
+
+  const btn = document.querySelector('.cta-btn');
+  btn.insertAdjacentElement('afterend', el);
+
+  // Hapus otomatis setelah 3 detik
+  setTimeout(() => el.remove(), 3000);
 }
 
 // ===== PLACE CARD RENDER =====
@@ -196,9 +328,9 @@ function initNearbyMap() {
   
   setTimeout(() => {
     try {
-      nearbyMap = L.map('nearby-map').setView([-6.9175, 107.6191], 13);
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '©OpenStreetMap ©Carto', maxZoom:19
+      nearbyMap = L.map('nearby-map', { preferCanvas:true }).setView([-6.9175, 107.6191], 13);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors', maxZoom:18
       }).addTo(nearbyMap);
       
       // Bandung places with coords
@@ -224,6 +356,10 @@ function initNearbyMap() {
           .addTo(nearbyMap);
       });
       
+      setTimeout(() => {
+        if (nearbyMap) nearbyMap.invalidateSize();
+      }, 300);
+      
       // Render list
       const list = document.getElementById('nearbyList');
       list.innerHTML = bandungPlaces.map((p,i) => `
@@ -239,7 +375,11 @@ function initNearbyMap() {
           </div>
         </div>
       `).join('');
-    } catch(e) { console.error('Map error:', e); }
+    } catch(e) {
+      console.error('Map error:', e);
+      const list = document.getElementById('nearbyList');
+      if (list) list.innerHTML = `<div style="padding:24px;color:var(--text-muted);font-size:14px;">Peta tidak tersedia saat ini. Silakan muat ulang halaman atau coba lagi nanti.</div>`;
+    }
   }, 300);
 }
 
