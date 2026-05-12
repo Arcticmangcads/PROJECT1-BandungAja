@@ -23,7 +23,7 @@ class Tempat(Base):
     image_url     = Column(String)  # Gambar tempat
 
 class User(Base):
-    __tablename__ = "users"
+    __tablename__ = "user"
 
     id       = Column(Integer, primary_key=True, index=True)
     nama     = Column(String, nullable=True)
@@ -37,7 +37,7 @@ class Wishlist(Base):
     __tablename__ = "wishlist"
 
     id         = Column(Integer, primary_key=True, index=True)
-    user_id    = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id    = Column(Integer, ForeignKey("user.id"), nullable=False)
     tempat_id  = Column(Integer, ForeignKey("tempat.id"), nullable=False)
     created_at = Column(String)
 
@@ -45,7 +45,7 @@ class Itinerary(Base):
     __tablename__ = "itinerary"
 
     id         = Column(Integer, primary_key=True, index=True)
-    user_id    = Column(Integer, ForeignKey("users.id"))
+    user_id    = Column(Integer, ForeignKey("user.id"))
     judul      = Column(String)    # nama rencana perjalanan
     total_hari = Column(Integer)
     created_at = Column(String)

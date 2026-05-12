@@ -1,4 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib import colors
+from fastapi.responses import StreamingResponse
+from io import BytesIO
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from database import get_db
 from routers.auth import get_current_user
@@ -180,3 +187,93 @@ def hapus_item(
     db.delete(item)
     db.commit()
     return {"message": f"Item berhasil dihapus dari Hari {item.hari}"}
+
+# GET untuk ekspor itinerary ke pdf
+@router.get("/{itinerary_id}/export-pdf")
+def export_itinerary_pdf(
+    itinerary_id: int,
+    hari: int = Query(..., description="Hari ke berapa yang ingin diekspor"),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    # 1. Ambil data itinerary
+    itinerary = db.query(models.Itinerary).filter(
+        models.Itinerary.id == itinerary_id,
+        models.Itinerary.user_id == current_user.id
+    ).first()
+    if not itinerary:
+        raise HTTPException(status_code=404, detail="Itinerary tidak ditemukan")
+
+    # 2. Ambil item-item pada hari yang diminta
+    items = db.query(models.ItineraryItem)\
+        .filter(
+            models.ItineraryItem.itinerary_id == itinerary_id,
+            models.ItineraryItem.hari == hari
+        )\
+        .order_by(models.ItineraryItem.urutan)\
+        .all()
+
+    if not items:
+        raise HTTPException(status_code=404, detail=f"Tidak ada tempat di hari {hari}")
+
+    # 3. Buat PDF di memory
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4,
+                            rightMargin=40, leftMargin=40,
+                            topMargin=40, bottomMargin=30)
+    styles = getSampleStyleSheet()
+    story = []
+
+    # --- Judul ---
+    title_style = ParagraphStyle(name='Title', fontSize=18, leading=22, spaceAfter=12)
+    story.append(Paragraph(f"Itinerary: {itinerary.judul}", styles['Title']))
+    subtitle_style = ParagraphStyle(name='Subtitle', fontSize=12, spaceAfter=20, textColor=colors.gray)
+    story.append(Paragraph(f"Hari ke-{hari} | Tanggal: {itinerary.created_at}", subtitle_style))
+    story.append(Spacer(1, 12))
+
+    # --- Tabel tempat (dengan kolom Rating) ---
+    data = [["No", "Nama Tempat", "Jam", "Rating", "Catatan"]]
+    for idx, item in enumerate(items, 1):
+        tempat = db.query(models.Tempat).filter(models.Tempat.id == item.tempat_id).first()
+        nama_tempat = tempat.nama if tempat else "Tidak diketahui"
+        rating = f"★ {tempat.rating}" if tempat and tempat.rating else "-"
+        data.append([
+            str(idx),
+            Paragraph(nama_tempat, styles['Normal']),
+            item.jam or "-",
+            rating,
+            Paragraph(item.catatan or "-", styles['Normal'])
+        ])
+
+    table = Table(data, colWidths=[30, 260, 70, 60, 120])
+    # styling tabel
+    table_style = TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#004AAD")),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+        ('TOPPADDING', (0, 0), (-1, 0), 8),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('FONTSIZE', (0, 1), (-1, -1), 9),
+        ('ALIGN', (3, 0), (3, -1), 'CENTER'),  # kolom Rating di tengah
+    ])
+    table.setStyle(table_style)
+    story.append(table)
+
+    # --- Catatan kaki ---
+    story.append(Spacer(1, 30))
+    story.append(Paragraph("Dibuat dengan BandungAja API", styles['Normal']))
+
+    # 4. Build PDF
+    doc.build(story)
+    buffer.seek(0)
+
+    # 5. Return sebagai streaming response
+    filename = f"itinerary_{itinerary.judul}_hari_{hari}.pdf"
+    return StreamingResponse(
+        buffer,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
