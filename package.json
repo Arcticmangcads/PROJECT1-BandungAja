@@ -25,37 +25,34 @@
       "output": "dist"
     },
     "files": [
-      "main.js",
-      "index.html",
-      "style.css",
-      "app.js",
-      "asset/**/*"
-    ],
+  "main.js",
+  "frontend/**/*"
+],
     "win": {
-      "target": [
-        {
-          "target": "nsis",
-          "arch": ["x64", "ia32"]
-        },
-        "portable"
-      ],
-      "icon": "asset/ICON-APP-BDGAJA.png"
+  "target": [
+    {
+      "target": "nsis",
+      "arch": ["x64", "ia32"]
     },
-    "mac": {
-      "target": ["dmg", "zip"],
-      "icon": "asset/ICON-APP-BDGAJA.png",
-      "category": "public.app-category.travel"
-    },
-    "linux": {
-      "target": ["AppImage", "deb"],
-      "icon": "asset/ICON-APP-BDGAJA.png",
-      "category": "Travel"
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "installerIcon": "asset/ICON-APP-BDGAJA.png",
-      "installerHeaderIcon": "asset/ICON-APP-BDGAJA.png"
-    }
+    "portable"
+  ],
+  "icon": "frontend/asset/ICON-APP-BDGAJA.ico"
+},
+"mac": {
+  "target": ["dmg", "zip"],
+  "icon": "frontend/asset/ICON-APP-BDGAJA.ico",
+  "category": "public.app-category.travel"
+},
+"linux": {
+  "target": ["AppImage", "deb"],
+  "icon": "frontend/asset/ICON-APP-BDGAJA.ico",
+  "category": "Travel"
+},
+"nsis": {
+  "oneClick": false,
+  "allowToChangeInstallationDirectory": true,
+  "installerIcon": "frontend/asset/ICON-APP-BDGAJA.ico",
+  "installerHeaderIcon": "frontend/asset/ICON-APP-BDGAJA.ico"
+}
   }
 }

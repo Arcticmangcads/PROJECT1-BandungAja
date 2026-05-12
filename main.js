@@ -25,7 +25,7 @@ function createWindow() {
   });
 
   // Load file HTML utama
-  mainWindow.loadFile('index.html');
+  mainWindow.loadFile('frontend/index.html');
 
   // Tampilkan window setelah siap (menghindari flash kosong)
   mainWindow.once('ready-to-show', () => {
@@ -39,7 +39,7 @@ function createWindow() {
   });
 
   // Uncomment baris ini untuk membuka DevTools saat development:
-  // mainWindow.webContents.openDevTools();
+  mainWindow.webContents.openDevTools();
 
   mainWindow.on('closed', () => {
     mainWindow = null;
@@ -48,7 +48,8 @@ function createWindow() {
 
 // Hapus menu bar default (opsional - bisa di-comment jika ingin menu)
 Menu.setApplicationMenu(null);
-
+app.commandLine.appendSwitch('enable-gpu-rasterization');
+app.commandLine.appendSwitch('enable-zero-copy');
 app.whenReady().then(() => {
   createWindow();
 
