@@ -192,11 +192,10 @@ def hapus_item(
 @router.get("/{itinerary_id}/export-pdf")
 def export_itinerary_pdf(
     itinerary_id: int,
-    hari: int = Query(..., description="Hari ke berapa yang ingin diekspor"),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
-    # 1. Ambil data itinerary
+    # Ambil data itinerary
     itinerary = db.query(models.Itinerary).filter(
         models.Itinerary.id == itinerary_id,
         models.Itinerary.user_id == current_user.id
@@ -204,19 +203,16 @@ def export_itinerary_pdf(
     if not itinerary:
         raise HTTPException(status_code=404, detail="Itinerary tidak ditemukan")
 
-    # 2. Ambil item-item pada hari yang diminta
+    # Ambil item-item 
     items = db.query(models.ItineraryItem)\
-        .filter(
-            models.ItineraryItem.itinerary_id == itinerary_id,
-            models.ItineraryItem.hari == hari
-        )\
+        .filter(models.ItineraryItem.itinerary_id == itinerary_id)\
         .order_by(models.ItineraryItem.urutan)\
         .all()
 
     if not items:
         raise HTTPException(status_code=404, detail=f"Tidak ada tempat di hari {hari}")
 
-    # 3. Buat PDF di memory
+    # Buat PDF
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4,
                             rightMargin=40, leftMargin=40,
@@ -228,7 +224,7 @@ def export_itinerary_pdf(
     title_style = ParagraphStyle(name='Title', fontSize=18, leading=22, spaceAfter=12)
     story.append(Paragraph(f"Itinerary: {itinerary.judul}", styles['Title']))
     subtitle_style = ParagraphStyle(name='Subtitle', fontSize=12, spaceAfter=20, textColor=colors.gray)
-    story.append(Paragraph(f"Hari ke-{hari} | Tanggal: {itinerary.created_at}", subtitle_style))
+    story.append(Paragraph(f"Jumlah Hari: {itinerary.total_hari} | Tanggal: {itinerary.created_at}", subtitle_style))
     story.append(Spacer(1, 12))
 
     # --- Tabel tempat (dengan kolom Rating) ---
@@ -262,16 +258,16 @@ def export_itinerary_pdf(
     table.setStyle(table_style)
     story.append(table)
 
-    # --- Catatan kaki ---
+    # --- Catatan Kaki ---
     story.append(Spacer(1, 30))
     story.append(Paragraph("Dibuat dengan BandungAja API", styles['Normal']))
 
-    # 4. Build PDF
+    # Build PDF
     doc.build(story)
     buffer.seek(0)
 
-    # 5. Return sebagai streaming response
-    filename = f"itinerary_{itinerary.judul}_hari_{hari}.pdf"
+    # Return sebagai streaming response
+    filename = f"{itinerary.judul}.pdf"
     return StreamingResponse(
         buffer,
         media_type="application/pdf",
