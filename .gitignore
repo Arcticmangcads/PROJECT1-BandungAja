@@ -27,3 +27,4 @@ env/
 # File testing sementara
 .pytest_cache/
 test.db               # jika Anda menggunakan database test terpisah
+.txt

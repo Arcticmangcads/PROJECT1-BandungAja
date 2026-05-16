@@ -167,12 +167,12 @@ def import_csv(
                         tempat = models.Tempat(
                                 nama          = row.get("nama").strip(),
                                 kategori      = row.get("kategori"),
+                                deskripsi     = row.get("deksripsi"),
                                 alamat        = row.get("alamat"),
                                 rating        = save_float(row.get("rating")),
                                 harga_min     = save_int(row.get("harga_min")),
                                 harga_max     = save_int(row.get("harga_max")),
                                 sumber        = row.get("sumber"),
-                                deskripsi     = row.get("deskripsi"),
                                 jam_buka      = row.get("jam_buka"),
                                 jam_tutup     = row.get("jam_tutup"),
                                 latitude      = save_float(row.get("latitude")),
