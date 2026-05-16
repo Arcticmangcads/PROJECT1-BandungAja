@@ -167,7 +167,7 @@ def import_csv(
                         tempat = models.Tempat(
                                 nama          = row.get("nama").strip(),
                                 kategori      = row.get("kategori"),
-                                deskripsi     = row.get("deksripsi"),
+                                deskripsi     = row.get("deskripsi"),
                                 alamat        = row.get("alamat"),
                                 rating        = save_float(row.get("rating")),
                                 harga_min     = save_int(row.get("harga_min")),

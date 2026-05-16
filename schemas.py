@@ -64,12 +64,12 @@ class UserLogin(BaseModel):
     password : str
 
 class UserResponse(BaseModel):
-    id     : int
-    nama   : Optional[str]
-    email  : str
-    foto   : Optional[str] = None
-    lokasi : Optional[str] = None
-    role   : Optional[str] = "user"
+    id        : int
+    nama      : Optional[str]
+    email     : str
+    foto      : Optional[str] = None
+    image_url : Optional[str] = None
+    role      : Optional[str] = "user"
 
     class Config:
         from_attributes = True
