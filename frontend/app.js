@@ -60,12 +60,28 @@ let currentCategory = '';
 let savedPlaces = [1, 3, 5, 8, 10];
 let nearbyMap = null;
 
+// Map page → background class
+const pageBgMap = {
+  home:      'bg-home',
+  search:    'bg-search',
+  nearby:    'bg-nearby',
+  top10:     'bg-top10',
+  saved:     'bg-saved',
+  itinerary: 'bg-itinerary',
+  profile:   'bg-profile',
+};
+
 // ===== PAGE NAVIGATION =====
 function showPage(pageId) {
   // Loading bar
   const bar = document.getElementById('loadingBar');
   bar.style.width = '40%';
-  
+
+  // Switch background class on body
+  const bgClasses = Object.values(pageBgMap);
+  document.body.classList.remove(...bgClasses);
+  if (pageBgMap[pageId]) document.body.classList.add(pageBgMap[pageId]);
+
   setTimeout(() => {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
@@ -484,6 +500,7 @@ window.addEventListener('scroll', () => {
 
 // ===== INIT =====
 window.onload = () => {
+  document.body.classList.add('bg-home');
   initHome();
   setTimeout(() => {
     document.querySelectorAll('.fade-up').forEach((el, i) => {

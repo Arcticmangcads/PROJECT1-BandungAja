@@ -49,7 +49,7 @@ function createWindow() {
 // Hapus menu bar default (opsional - bisa di-comment jika ingin menu)
 Menu.setApplicationMenu(null);
 app.commandLine.appendSwitch('enable-gpu-rasterization');
-app.commandLine.appendSwitch('enable-zero-copy');
+app.commandLine.appendSwitch('enable-zero-copy');n
 app.whenReady().then(() => {
   createWindow();
 

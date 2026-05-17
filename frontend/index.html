@@ -264,33 +264,53 @@
       <div class="itin-title">Rencana <span>Perjalanan</span></div>
       <div class="itin-sub">Atur jadwal jelajah Bandungmu dengan mudah</div>
     </div>
-    <button class="btn-primary" onclick="showModal('createItinModal')">
-      + Buat Itinerary Baru
-    </button>
   </div>
   <div class="itin-content">
     <div class="itin-plans" id="itinList"></div>
     <div class="itin-panel">
       <div class="itin-create-card">
-        <div class="itin-create-title">✨ Buat Itinerary</div>
-        <div class="itin-create-sub">Rencanakan perjalanan seru di Bandung. Tambahkan destinasi, atur waktu, dan simpan rencana terbaikmu.</div>
-        <div class="itin-form-row">
-          <label class="itin-form-label">Nama Perjalanan</label>
-          <input class="itin-form-input" placeholder="Contoh: Weekend di Bandung" id="itinName">
-        </div>
-        <div class="itin-form-row">
-          <label class="itin-form-label">Tanggal Mulai</label>
-          <input class="itin-form-input" type="date" id="itinDate">
-        </div>
-        <div class="itin-form-row">
-          <label class="itin-form-label">Durasi</label>
-          <select class="itin-form-input" id="itinDuration">
-            <option>1 Hari</option>
-            <option>2 Hari</option>
-            <option>3 Hari</option>
-            <option>4+ Hari</option>
-          </select>
-        </div>
+  <div class="itin-create-title">✨ Buat Itinerary</div>
+  <div class="itin-create-sub">Rencanakan perjalanan seru di Bandung. Tambahkan destinasi, atur waktu, dan simpan rencana terbaikmu.</div>
+  
+  <div class="itin-form-row">
+    <label class="itin-form-label">Nama Perjalanan</label>
+    <input class="itin-form-input" placeholder="Contoh: Weekend di Bandung" id="itinName">
+  </div>
+  
+  <div class="itin-form-row">
+    <label class="itin-form-label">Tanggal Mulai</label>
+    <input class="itin-form-input" type="date" id="itinDate">
+  </div>
+  
+  <div class="itin-form-row">
+    <label class="itin-form-label">Durasi</label>
+    <select class="itin-form-input" id="itinDuration">
+      <option>1 Hari</option>
+      <option>2 Hari</option>
+      <option>3 Hari</option>
+      <option>4+ Hari</option>
+    </select>
+  </div>
+
+  <div class="itin-form-row">
+    <label class="itin-form-label">Tipe Traveler</label>
+    <select class="itin-form-input" id="itinTravelerType">
+      <option>Solo Traveler</option>
+      <option>Keluarga (Family)</option>
+      <option>Pasangan (Couple)</option>
+      <option>Rombongan (Group)</option>
+    </select>
+  </div>
+
+  <div class="itin-form-row">
+    <label class="itin-form-label">Estimasi Budget</label>
+    <select class="itin-form-input" id="itinBudget">
+      <option>Backpacker (Hemat)</option>
+      <option>Medium (Standar)</option>
+      <option>Luxury (Mewah)</option>
+    </select>
+  </div>
+</div>
         <button class="btn-create-itin" onclick="createItinerary()">Buat Sekarang 🚀</button>
       </div>
       <!-- Quick tip -->
