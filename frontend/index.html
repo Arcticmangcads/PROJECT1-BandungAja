@@ -144,7 +144,6 @@
         </div>
         <div class="feature-name">Export PDF</div>
         <div class="feature-desc">Export itinerary perjalananmu dalam format PDF yang siap cetak</div>
-        <button class="itin-btn-secondary" onclick="exportItineraryPDF(1)">📄 Download PDF</button>
       </div>
     </div>
 
@@ -265,18 +264,11 @@
       <div class="itin-title">Rencana <span>Perjalanan</span></div>
       <div class="itin-sub">Atur jadwal jelajah Bandungmu dengan mudah</div>
     </div>
-<<<<<<< Updated upstream
-=======
-    <button class="btn-create-itin" onclick="createItinerary(); closeModal('createItinModal');">
-      + Buat Itinerary Baru
-    </button>  
->>>>>>> Stashed changes
   </div>
   <div class="itin-content">
     <div class="itin-plans" id="itinList"></div>
     <div class="itin-panel">
       <div class="itin-create-card">
-<<<<<<< Updated upstream
   <div class="itin-create-title">✨ Buat Itinerary</div>
   <div class="itin-create-sub">Rencanakan perjalanan seru di Bandung. Tambahkan destinasi, atur waktu, dan simpan rencana terbaikmu.</div>
   
@@ -319,27 +311,6 @@
     </select>
   </div>
 </div>
-=======
-        <div class="itin-create-title">✨ Buat Itinerary</div>
-        <div class="itin-create-sub">Rencanakan perjalanan seru di Bandung. Tambahkan destinasi, atur waktu, dan simpan rencana terbaikmu.</div>
-        <div class="itin-form-row">
-          <label class="itin-form-label">Nama Perjalanan</label>
-          <input class="itin-form-input" placeholder="Contoh: Weekend di Bandung" id="itinName">
-        </div>
-        <div class="itin-form-row">
-          <label class="itin-form-label">Tanggal Mulai</label>
-          <input class="itin-form-input" type="date" id="itinDate">
-        </div>
-        <div class="itin-form-row">
-          <label class="itin-form-label">Durasi</label>
-          <input class="itin-form-input" type="number" placeholder="Jumlah hari (contoh: 3)" min="1" id="itinDuration">
-            <option>1 Hari</option>
-            <option>2 Hari</option>
-            <option>3 Hari</option>
-            <option>4+ Hari</option>
-          </select>
-        </div>
->>>>>>> Stashed changes
         <button class="btn-create-itin" onclick="createItinerary()">Buat Sekarang 🚀</button>
       </div>
       <!-- Quick tip -->
@@ -370,7 +341,7 @@
       </div>
       <div>
         <div class="profile-name">Andi Pratama</div>
-        <div class="profile-username">@andipratama · Explorer Level 5</div>
+        <div class="profile-username">Andi Pratama · Explorer Level 5</div>
       </div>
       <div class="profile-stats-row">
         <div class="profile-stat">
@@ -407,7 +378,7 @@
           <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="rgba(255,255,255,0.5)" stroke-width="2"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" stroke="rgba(255,255,255,0.5)" stroke-width="2"/></svg>
           Pengaturan
         </button>
-        <button class="profile-menu-item" onclick="showToast('Berhasil keluar!');showPage('home')">
+        <button class="profile-menu-item" onclick="logoutUser();showPage('home')">
           <svg viewBox="0 0 24 24" fill="none"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" stroke="rgba(255,255,255,0.5)" stroke-width="2" stroke-linecap="round"/></svg>
           Keluar
         </button>
@@ -425,13 +396,13 @@
     <div class="modal-sub">Masuk untuk menyimpan itinerary dan destinasi favoritmu</div>
     <div class="itin-form-row">
       <label class="itin-form-label">Email</label>
-      <input class="itin-form-input" id="loginEmail" placeholder="email@example.com" type="email">
+      <input class="itin-form-input" placeholder="email@example.com" id="emailInput" type="email">
     </div>
     <div class="itin-form-row">
       <label class="itin-form-label">Password</label>
-      <input class="itin-form-input" id="loginPassword" placeholder="••••••••" type="password">
+      <input class="itin-form-input" placeholder="••••••••" id="loginPassword" type="password">
     </div>
-    <button class="btn-create-itin" onclick="closeModal('loginModal');showToast('Berhasil masuk! Selamat menjelajah 🎉')">Masuk Sekarang</button>
+    <button class="btn-create-itin" onclick="loginUser(document.getElementById('emailInput').value, document.getElementById('loginPassword').value);showToast('Berhasil masuk! Selamat menjelajah 🎉')">Masuk Sekarang</button>
     <div style="text-align:center;margin-top:16px;font-size:13px;color:var(--text-muted)">Belum punya akun? <span style="color:var(--secondary);cursor:pointer;font-weight:600" onclick="closeModal('loginModal');showModal('registerModal')">Daftar Gratis</span></div>
   </div>
 </div>
@@ -445,40 +416,30 @@
     <!-- Nama Depan -->
     <div class="itin-form-row">
       <label class="itin-form-label">Nama Depan</label>
-      <input class="itin-form-input" placeholder="Masukkan nama depan Anda" id="first-name">
+      <input class="itin-form-input" placeholder="Masukkan nama depan Anda" id="nama_depan">
     </div>
 
     <!-- Nama Belakang -->
     <div class="itin-form-row">
       <label class="itin-form-label">Nama Belakang</label>
-      <input class="itin-form-input" placeholder="Masukkan nama belakang Anda" id="last-name">
+      <input class="itin-form-input" placeholder="Masukkan nama belakang Anda" id="nama_belakang">
     </div>
 
     <!-- Email -->
     <div class="itin-form-row">
       <label class="itin-form-label">Email</label>
-<<<<<<< Updated upstream
       <input class="itin-form-input" placeholder="email@example.com" type="email" id="email">
-=======
-      <input class="itin-form-input" placeholder="email@example.com" type="email" id="emailInput">
->>>>>>> Stashed changes
     </div>
 
     <!-- Password -->
     <div class="itin-form-row">
       <label class="itin-form-label">Kata Sandi</label>
-<<<<<<< Updated upstream
       <input class="itin-form-input" placeholder="Minimal 8 karakter" type="password" id="password">
     </div>
 
-    <button class="btn-create-itin" onclick="handleRegister()">Buat Akun Sekarang</button>
-=======
-      <input class="itin-form-input" placeholder="Minimal 8 karakter" type="password" id="passwordInput">
-    </div>
-
-    <!-- <button class="btn-create-itin" onclick="handleRegister()">Buat Akun Sekarang</button>  -->
-    <button class="btn-primary" onclick="loginUser(document.getElementById('emailInput').value, document.getElementById('passwordInput').value)">Buat Akun Sekarang</button>
->>>>>>> Stashed changes
+    <button class="btn-create-itin" onclick="handleRegister()">
+      Buat Akun Sekarang
+    </button>
 
     <div style="text-align:center;margin-top:16px;font-size:13px;color:var(--text-muted)">Sudah punya akun? <span style="color:var(--secondary);cursor:pointer;font-weight:600" onclick="closeModal('registerModal');showModal('loginModal')">Masuk</span></div>
   </div>
