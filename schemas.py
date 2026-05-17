@@ -63,9 +63,12 @@ class userCreate (BaseModel):
     lokasi        : Optional[str] = None
 
 class UserRegister(BaseModel):
-    nama     : Optional[str] = None
-    email    : str
-    password : str
+    nama_depan    : Optional[str] = None
+    nama_belakang : Optional[str] = None
+    email         : str
+    password      : str
+    image_url     : Optional[str] = None
+    lokasi        : Optional[str] = None
 
 class UserLogin(BaseModel):
     email    : str
@@ -73,7 +76,7 @@ class UserLogin(BaseModel):
 
 class UserResponse(BaseModel):
     id        : int
-    nama_depan    : str
+    nama_depan    : Optional[str] = None
     nama_belakang : Optional[str] = None
     email         : str
     image_url     : Optional[str] = None

@@ -30,7 +30,7 @@ class User(Base):
     nama_belakang = Column(String, nullable=True)
     email         = Column(String, unique=True, nullable=False)
     password      = Column(String, nullable=False)  # disimpan dalam bentuk hash
-    foto          = Column(String)
+    image_url     = Column(String)
     lokasi        = Column(String)
     role          = Column(String, default="user")
 
