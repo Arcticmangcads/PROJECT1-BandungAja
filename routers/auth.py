@@ -33,7 +33,7 @@ def require_developer(current_user: models.User = Depends(get_current_user)):
         )
     return current_user
 
-# POST /register
+# POST - register
 @router.post("/register", response_model=schemas.UserResponse)
 def register(data: schemas.UserRegister, db: Session = Depends(get_db)):
     # Cek email sudah terdaftar atau belum
@@ -41,10 +41,15 @@ def register(data: schemas.UserRegister, db: Session = Depends(get_db)):
     if existing:
         raise HTTPException(status_code=400, detail="Email sudah terdaftar")
 
+    hashed_pw = hash_password(data.password)
+
     user_baru = models.User(
-        nama     = data.nama,
-        email    = data.email,
-        password = hash_password(data.password)
+        nama_depan        = data.nama_depan,
+        nama_belakang     = data.nama_belakang,
+        email             = data.email,
+        password          = hashed_pw,
+        image_url         = data.image_url,
+        lokasi            = data.lokasi
     )
     db.add(user_baru)
     db.commit()
@@ -75,6 +80,26 @@ def update_me(data: schemas.UserUpdate, db: Session = Depends(get_db),
               current_user: models.User = Depends(get_current_user)):
     for key, value in data.model_dump(exclude_none=True).items():
         setattr(current_user, key, value)
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+
+# PATCH — Update profil
+@router.patch("/me", response_model=schemas.UserResponse)
+def update_profile(
+    data         : schemas.UserUpdate,
+    db           : Session     = Depends(get_db),
+    current_user : models.User = Depends(get_current_user)
+):
+    if data.nama_depan is not None:                    
+        current_user.nama_depan = data.nama_depan      
+    if data.nama_belakang is not None:                 
+        current_user.nama_belakang = data.nama_belakang 
+    if data.foto is not None:
+        current_user.image_url = data.image_url
+    if data.lokasi is not None:
+        current_user.lokasi = data.lokasi
+
     db.commit()
     db.refresh(current_user)
     return current_user
