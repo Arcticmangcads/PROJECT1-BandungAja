@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from typing import Optional
 
 class TempatResponse(BaseModel):
@@ -81,6 +81,14 @@ class UserResponse(BaseModel):
     email         : str
     image_url     : Optional[str] = None
     role          : Optional[str] = "user"
+
+    # Otomatis mengubah huruf awal menjadi kapital saat skema dibaca
+    @field_validator('role')
+    @classmethod
+    def format_role(cls, v: Optional[str]) -> Optional[str]:
+        if v:
+            return v.title()  # 'developer' -> 'Developer'
+        return v
 
     class Config:
         from_attributes = True
