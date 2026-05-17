@@ -1,3 +1,9 @@
+const currentUser = JSON.parse(localStorage.getItem('user'));
+if (currentUser) {
+    console.log("Login sebagai:", currentUser.nama_depan);
+    // Ubah teks tombol 'Masuk' menjadi nama user di sini
+}
+
 // ===== Hubungan dengan Backend =====
 const API_URL = 'http://127.0.0.1:8000/api'; 
 
@@ -130,7 +136,7 @@ const pageBgMap = {
 };
 
 // ===== PAGE NAVIGATION =====
-function showPage(pageId) {
+async function showPage(pageId) {
   // Loading bar
   const bar = document.getElementById('loadingBar');
   bar.style.width = '40%';
@@ -205,15 +211,33 @@ return `
   `;
 }
 
-function toggleSave(id, btn) {
+async function toggleSave(id, btn) {
+  // Cek Login (Wajib untuk koneksi backend)
+  const token = localStorage.getItem('token');
+
+  if (!token) {
+    showToast('Silakan login terlebih dahulu');
+    return;
+  }
+
   if (savedPlaces.includes(id)) {
-    savedPlaces = savedPlaces.filter(x => x !== id);
-    showToast('Dihapus dari simpanan');
-    btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M19 21L12 16L5 21V5C5 4.46957 5.21071 3.96086 5.58579 3.58579C5.96086 3.21071 6.46957 3 7 3H17C17.5304 3 18.0391 3.21071 18.4142 3.58579C18.7893 3.96086 19 4.46957 19 5V21Z"/></svg>`;
+    // LOGIKA HAPUS (Lapor ke Backend)
+    const response = await authorizedFetch(`/wishlist/${id}`, { method: 'DELETE' });
+
+    if (response && response.ok) {
+      savedPlaces = savedPlaces.filter(x => x !== id);
+      showToast('Dihapus dari simpanan');
+      btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M19 21L12 16L5 21V5C5 4.46957 5.21071 3.96086 5.58579 3.58579C5.96086 3.21071 6.46957 3 7 3H17C17.5304 3 18.0391 3.21071 18.4142 3.58579C18.7893 3.96086 19 4.46957 19 5V21Z"/></svg>`;
+    }
   } else {
-    savedPlaces.push(id);
-    showToast('Disimpan! ❤️');
-    btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="#C0F11C" stroke="#C0F11C" stroke-width="2"><path d="M19 21L12 16L5 21V5C5 4.46957 5.21071 3.96086 5.58579 3.58579C5.96086 3.21071 6.46957 3 7 3H17C17.5304 3 18.0391 3.21071 18.4142 3.58579C18.7893 3.96086 19 4.46957 19 5V21Z"/></svg>`;
+    // LOGIKA TAMBAH (Lapor ke Backend)
+    const response = await authorizedFetch(`/wishlist/${id}`, { method: 'POST' });
+
+    if (response && response.ok) {
+      savedPlaces.push(id);
+      showToast('Disimpan! ❤️');
+      btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="#C0F11C" stroke="#C0F11C" stroke-width="2"><path d="M19 21L12 16L5 21V5C5 4.46957 5.21071 3.96086 5.58579 3.58579C5.96086 3.21071 6.46957 3 7 3H17C17.5304 3 18.0391 3.21071 18.4142 3.58579C18.7893 3.96086 19 4.46957 19 5V21Z"/></svg>`;
+    }
   }
 }
 
@@ -411,10 +435,31 @@ function renderTop10() {
 
 // ===== PROFILE =====
 function renderProfile() {
+  const user = JSON.parse(localStorage.getItem('user'));
+  if (user) {
+    // Update nama di bagian Hero Profile
+    const profileNameEl = document.querySelector('.profile-name');
+    const profileAvatarEl = document.querySelector('.profile-avatar');
+    const fullName = document.querySelector('#page-profile .profile-username');
+    
+    if (profileNameEl) profileNameEl.innerText = `${user.nama_depan} ${user.nama_belakang || ''}`;
+    if (profileAvatarEl) profileAvatarEl.innerText = user.nama_depan.charAt(0).toUpperCase();
+  }
+
   switchProfileSection(document.querySelector('.profile-menu-item'), 'info');
 }
 
 function switchProfileSection(btn, section) {
+  // Ambil data user dari localStorage
+  const user = JSON.parse(localStorage.getItem('user')) || {
+    nama_depan: 'Tamu',
+    nama_belakang: '',
+    email: '-',
+    lokasi: 'Bandung'
+  };
+
+  const fullName = `${user.nama_depan} ${user.nama_belakang || ''}`.trim();
+  
   document.querySelectorAll('.profile-menu-item').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   
@@ -425,12 +470,30 @@ function switchProfileSection(btn, section) {
       <div class="profile-section">
         <div class="profile-section-title">Informasi Pribadi</div>
         <div class="profile-info-grid">
-          <div class="profile-info-item"><div class="profile-info-label">Nama Lengkap</div><div class="profile-info-value">Andi Pratama</div></div>
-          <div class="profile-info-item"><div class="profile-info-label">Username</div><div class="profile-info-value">@andipratama</div></div>
-          <div class="profile-info-item"><div class="profile-info-label">Email</div><div class="profile-info-value">andi@email.com</div></div>
-          <div class="profile-info-item"><div class="profile-info-label">Kota Asal</div><div class="profile-info-value">Bandung</div></div>
-          <div class="profile-info-item"><div class="profile-info-label">Bergabung</div><div class="profile-info-value">Januari 2024</div></div>
-          <div class="profile-info-item"><div class="profile-info-label">Level Explorer</div><div class="profile-info-value" style="color:var(--secondary)">⭐ Level 5</div></div>
+          <div class="profile-info-item">
+            <div class="profile-info-label">Nama Lengkap</div>
+              <div class="profile-info-value">${fullName}</div>
+          </div>
+          <div class="profile-info-item">
+            <div class="profile-info-label">Username</div>
+            <div class="profile-info-value">@${fullName}</div>
+          </div>
+          <div class="profile-info-item">
+            <div class="profile-info-label">Email</div>
+            <div class="profile-info-value">${user.email}</div>
+          </div>
+          <div class="profile-info-item">
+            <div class="profile-info-label">Kota Asal</div>
+            <div class="profile-info-value">${user.lokasi || 'Indonesia'}</div>
+          </div>
+          <div class="profile-info-item">
+            <div class="profile-info-label">Bergabung</div>
+            <div class="profile-info-value">Januari 2024</div>
+          </div>
+          <div class="profile-info-item">
+            <div class="profile-info-label">Level Explorer</div>
+            <div class="profile-info-value" style="color:var(--secondary)">⭐ Level 5 (${user.role || 'User'})</div>
+          </div>
         </div>
         <button class="btn-primary" style="margin-top:24px" onclick="showToast('Profil disimpan!')">Simpan Perubahan</button>
       </div>
@@ -504,12 +567,23 @@ function switchProfileSection(btn, section) {
       </div>
     `;
   } else if (section === 'settings') {
+    const fullName = `${user.nama_depan} ${user.nama_belakang || ''}`.trim();
+
     main.innerHTML = `
       <div class="profile-section">
         <div class="profile-section-title">Pengaturan Akun</div>
-        <div class="itin-form-row"><label class="itin-form-label">Username</label><input class="itin-form-input" value="@andipratama"></div>
-        <div class="itin-form-row"><label class="itin-form-label">Email</label><input class="itin-form-input" value="andi@email.com" type="email"></div>
-        <div class="itin-form-row"><label class="itin-form-label">Password Baru</label><input class="itin-form-input" placeholder="••••••••" type="password"></div>
+        <div class="itin-form-row">
+          <label class="itin-form-label">Username</label>
+          <input class="itin-form-input" value="${fullName}">
+        </div>
+        <div class="itin-form-row">
+          <label class="itin-form-label">Email</label>
+          <input class="itin-form-input" value="${user.email}" type="email">
+        </div>
+        <div class="itin-form-row">
+          <label class="itin-form-label">Password Baru</label>
+          <input class="itin-form-input" placeholder="••••••••" type="password" value="">
+        </div>
         <button class="btn-primary" onclick="showToast('Pengaturan disimpan!')">Simpan Pengaturan</button>
       </div>
       <div class="profile-section">
@@ -576,6 +650,100 @@ window.onload = () => {
 Semua fungsi dibawah untuk integrasi backend
 */
 
+// ===== FUNGSI LOGIN & AUTH =====
+async function loginUser(email, password) {
+  try {
+    const response = await fetch(`${API_URL}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      // SIMPAN DATA KE STORAGE
+      localStorage.setItem('token', data.access_token);
+      localStorage.setItem('user', JSON.stringify(data.user)); // Simpan profil user
+
+      const fullName = `${data.user.nama_depan} ${data.user.nama_belakang || ''}`.trim();
+      showToast(`Selamat datang kembali, ${fullName}! 👋`);
+      closeModal('loginModal');
+
+      // Sinkronisasi data setelah login
+      if (typeof syncWishlist === "function") syncWishlist();
+      
+      // Refresh UI (misal: ganti tombol 'Masuk' jadi nama user)
+      setTimeout(() => location.reload(), 1000);
+    } else {
+      showToast(data.detail || 'Login gagal, cek email/password');
+    }
+  } catch (error) {
+    showToast('Gagal terhubung ke server auth');
+  }
+}
+
+// Fungsi Logout untuk menghapus data
+function logoutUser() {
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+  showToast('Berhasil keluar');
+  showPage('home');
+  setTimeout(() => {
+    location.reload();
+  }, 1000);
+  location.reload(); // Refresh untuk reset state UI
+}
+
+async function handleRegister() {
+  const firstName = document.getElementById('nama_depan').value.trim();
+  const lastName = document.getElementById('nama_belakang').value.trim();
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value.trim();
+
+  if(!firstName || !email || !password) {
+    showToast("Nama depan, Email, dan Password wajib diisi!");
+    return;
+  }
+
+  // Gabungkan nama depan dan belakang sebagai "nama"
+  const nama = [firstName, lastName].filter(Boolean).join(' ');
+
+  try {
+    const response = await fetch(`${API_URL}/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        nama_depan: firstName,
+        nama_belakang: lastName,
+        email: email,
+        password: password
+      })
+    });
+
+    const data = await response.json();
+    if (response.ok) {
+      showToast('Akun berhasil dibuat! Silakan masuk.');
+      closeModal('registerModal');
+      showModal('loginModal');
+    } else {
+      showToast(data.detail || 'Gagal mendaftar');
+    }
+  } catch (error) {
+    showToast('Gagal terhubung ke server');
+  }
+}
+
+function updateProfileHero(user) {
+  const roleBadge = user.role === 'developer' ? '⭐ Developer' : '🧑 User';
+  
+  const heroUsername = document.querySelector('#page-profile .profile-username');
+  const heroKunjungan = document.querySelector('#page-profile .profile-stat-num');
+
+  if (heroUsername) heroUsername.textContent = user.email + ' · Explorer';
+  // Untuk statistik, Anda bisa hitung dari data asli atau biarkan placeholder
+}
+
 async function authorizedFetch(endpoint, options = {}) {
   const token = localStorage.getItem('token');
   const headers = {
@@ -597,8 +765,8 @@ async function authorizedFetch(endpoint, options = {}) {
     showToast("Sesi habis, silahkan login kembali.");
     if(typeof logoutUser === "function") logoutUser();
     return null;
-    return response;
   }
+  return response;
 }
 
 // ===== Export Itinerary ke PDF =====
@@ -773,7 +941,29 @@ async function deleteItineraryItem(itinereryId, itemId) {
   }
 }
 
-// ===== REMOVE FROM WISHLIST =====
+// ===== ADD & REMOVE FROM WISHLIST =====
+async function syncWishlist() {
+  const token = localStorage.getItem('token');
+  if (!token) return;
+
+  try {
+    const response = await authorizedFetch('/wishlist');
+    if (response && response.ok) {
+      const data = await response.json();
+      // Simpan ID tempat yang ada di wishlist ke variabel global savedPlaces
+      savedPlaces = data.map(item => item.id);
+      
+      // Render ulang UI agar ikon bookmark berubah warna
+      if (typeof renderPlaces === 'function') renderPlaces();
+      if (typeof renderSaved === 'function') renderSaved();
+      
+      console.log("Wishlist berhasil disinkronkan dari Supabase!");
+    }
+  } catch (error) {
+    console.error("Gagal sinkronisasi wishlist:", error);
+  }
+}
+
 async function removeFromWhislist(tempatId) {
   try {
     const response = await authorizedFetch(`/wishlist/${tempatId}`, {
@@ -841,6 +1031,9 @@ async function getStatusTempat(tempatId) {
 }
 
 // Export fungsi ke objek global window untuk dipanggil langsung dari HTML
+window.loginUser = loginUser;
+window.logoutUser = logoutUser;
+window.handleRegister = handleRegister;
 window.exportItineraryToPDF = exportItineraryToPDF;
 window.getItineraris = getItineraris;
 window.createItinerary = createItinerary;
@@ -848,6 +1041,7 @@ window.getItineraryDetail = getItineraryDetail;
 window.addItemToItinerary = addItemToItinerary;
 window.deleteItinerary = deleteItinerary;
 window.deleteItineraryItem = deleteItineraryItem;
+window.syncWishlist = syncWishlist;
 window.removeFromWhislist = removeFromWhislist;
 window.getHiddenGem = getHiddenGem;
 window.getNearby = getNearby;
@@ -855,6 +1049,7 @@ window.getStatusTempat = getStatusTempat;
 
 document.addEventListener('DOMContentLoaded', () => {
   fetchPlaceFromBackend();
+  syncWishlist();
   showPage('home');
 });
 
