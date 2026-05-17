@@ -1,0 +1,58 @@
+{
+  "name": "bandungaja",
+  "version": "1.0.0",
+  "description": "BandungAja - Aplikasi Wisata Kota Bandung",
+  "main": "main.js",
+  "author": "BandungAja Team",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --inspect",
+    "build:win": "electron-builder build --win",
+    "build:mac": "electron-builder build --mac",
+    "build:linux": "electron-builder build --linux",
+    "build:all": "electron-builder build --win --mac --linux"
+  },
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.0.0"
+  },
+  "build": {
+    "appId": "com.bandungaja.app",
+    "productName": "BandungAja",
+    "copyright": "Copyright © 2025 BandungAja Team",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+  "main.js",
+  "frontend/**/*"
+],
+    "win": {
+  "target": [
+    {
+      "target": "nsis",
+      "arch": ["x64", "ia32"]
+    },
+    "portable"
+  ],
+  "icon": "frontend/asset/ICON-APP-BDGAJA.ico"
+},
+"mac": {
+  "target": ["dmg", "zip"],
+  "icon": "frontend/asset/ICON-APP-BDGAJA.ico",
+  "category": "public.app-category.travel"
+},
+"linux": {
+  "target": ["AppImage", "deb"],
+  "icon": "frontend/asset/ICON-APP-BDGAJA.ico",
+  "category": "Travel"
+},
+"nsis": {
+  "oneClick": false,
+  "allowToChangeInstallationDirectory": true,
+  "installerIcon": "frontend/asset/ICON-APP-BDGAJA.ico",
+  "installerHeaderIcon": "frontend/asset/ICON-APP-BDGAJA.ico"
+}
+  }
+}
