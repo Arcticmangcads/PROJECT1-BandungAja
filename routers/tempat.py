@@ -116,7 +116,7 @@ def import_csv(
         file: UploadFile = File(...),
         db: Session = Depends(get_db),
         current_user : models.User = Depends(require_developer)
-):
+):        
         # Validasi eksistensi file
         if not file.filename.lower().endswith(".csv"):
                 raise HTTPException(status_code=400, detail="File harus berformat CSV")
@@ -128,10 +128,16 @@ def import_csv(
         except UnicodeDecodeError:
                 raise HTTPException(status_code=400, detail="Encoding file harus UTF-8")
         try:
-                df = pd.read_csv(io.BytesIO(contents), dtype = {
-                        "jam_buka"  : str,
-                        "jam_tutup" : str
-                })
+                df = pd.read_csv(
+                        io.BytesIO(contents),
+                        sep=None,
+                        engine='python',
+                        encoding='utf-8',
+                        dtype={
+                                "jam_buka": str,
+                                "jam_tutup": str
+                                }
+                        )
         except Exception as e:
                 raise HTTPException(status_code=400, detail=f"Gagal membaca CSV: {str(e)}")
                 
@@ -153,6 +159,8 @@ def import_csv(
         errors = [] # mencatat detail error
         
         for idx, row in df.iterrows():
+                if pd.isna(row.get("nama")) or str(row.get("nama")).strip() == "":
+                        continue
                 try:
                         # Fungsi bantu konversi aman
                         def save_float(val):
