@@ -55,7 +55,8 @@ class TempatUpdate(BaseModel):
 
 # === AUTH ===
 class UserRegister(BaseModel):
-    nama     : Optional[str] = None
+    nama_depan    : Optional[str]   = None
+    nama_belakang : Optional[str]   = None
     email    : str
     password : str
 

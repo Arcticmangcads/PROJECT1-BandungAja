@@ -42,9 +42,10 @@ def register(data: schemas.UserRegister, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Email sudah terdaftar")
 
     user_baru = models.User(
-        nama     = data.nama,
-        email    = data.email,
-        password = hash_password(data.password)
+        nama_depan    = data.nama_depan,
+        nama_belakang = data.nama_belakang,
+        email         = data.email,
+        password      = hash_password(data.password)
     )
     db.add(user_baru)
     db.commit()

@@ -128,16 +128,10 @@ def import_csv(
         except UnicodeDecodeError:
                 raise HTTPException(status_code=400, detail="Encoding file harus UTF-8")
         try:
-                df = pd.read_csv(
-                        io.BytesIO(contents),
-                        sep=None,
-                        engine='python',
-                        encoding='utf-8',
-                        dtype={
-                                "jam_buka": str,
-                                "jam_tutup": str
-                                }
-                        )
+                # Deteksi otomatis pemisah (koma/titik koma)
+                df = pd.read_csv(io.BytesIO(contents), sep=None, engine='python')
+                df.columns = df.columns.str.strip().str.lower()
+                
         except Exception as e:
                 raise HTTPException(status_code=400, detail=f"Gagal membaca CSV: {str(e)}")
                 
