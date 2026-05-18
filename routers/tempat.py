@@ -7,6 +7,7 @@ from routers.auth import require_developer
 from typing import Optional, List
 from database import get_db
 
+import requests
 import models, schemas
 import pandas as pd
 import io
@@ -253,3 +254,16 @@ def hitung_jarak(lat1, lon1, lat2, lon2):
         a = sin(dlat/2)**2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon/2)**2
         c = 2 * atan2(sqrt(a), sqrt(1 - a))
         return R * c # Jarak dalam kilometer
+
+@router.get("/nearby-auto")
+def nearby_auto(radius: float = 5, db: Session = Depends(get_db)):
+    # Auto detect user location
+    try:
+        res = requests.get('http://ip-api.com/json/', timeout=5)
+        data = res.json()
+        user_lat = data['lat']
+        user_lon = data['lon']
+    except:
+        # Default Bandung
+        user_lat = -6.914744
+        user_lon = 107.609810
