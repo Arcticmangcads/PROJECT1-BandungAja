@@ -1,5 +1,18 @@
+const currentUser = JSON.parse(localStorage.getItem('user'));
+if (currentUser) {
+    console.log("Login sebagai:", currentUser.nama_depan);
+    // Ubah teks tombol 'Masuk' menjadi nama user di sini
+}
+
+// ===== Hubungan dengan Backend =====
+const API_URL = 'http://127.0.0.1:8000/api'; 
+
 // ===== DATA =====
-const places = [
+/*
+MODIFIKASI: mengubah 'const' menjadi 'let' agar bisa ditimpa dengan data dari database.
+Data Dummy ini dibiarkan di baris awal sebagai fallback jika backend mati.
+*/
+let places = [
   { id:1, name:"Gedung Merdeka", area:"Braga", cat:"Wisata", price:"free", rating:4.8, visits:15420, badge:"Ikonik", desc:"Gedung bersejarah tempat Konferensi Asia-Afrika 1955" },
   { id:2, name:"Kawah Putih", area:"Cimahi", cat:"Alam", price:"cheap", rating:4.7, visits:12300, badge:"Alam", desc:"Danau vulkanik berwarna putih kehijauan yang memukau" },
   { id:3, name:"Floating Market Lembang", area:"Lembang", cat:"Hiburan", price:"cheap", rating:4.5, visits:11200, badge:"Trending", desc:"Pasar apung dengan suasana alam yang sejuk" },
@@ -13,6 +26,57 @@ const places = [
   { id:11, name:"Tebing Keraton", area:"Dago", cat:"Alam", price:"cheap", rating:4.5, visits:9200, badge:"Sunrise", desc:"Tebing dengan pemandangan sunrise terbaik di Bandung" },
   { id:12, name:"Pasar Baru Trade Centre", area:"Braga", cat:"Belanja", price:"cheap", rating:4.2, visits:11400, badge:"Shopping", desc:"Pusat perbelanjaan tekstil terbesar di Bandung" },
 ];
+
+/* 
+Fungsi baru yang ditambahkan Al Fatih
+Untuk mengambil data dari Backend FastAPI & Supabase
+*/
+async function fetchPlaceFromBackend() {
+  try{
+    const response = await fetch(`${API_URL}/tempat`);
+    if(!response.ok) {
+      throw new Error('Gagal fetch data dari server API');
+    }
+
+    const backendData = await response.json();
+
+    if(backendData && backendData.length > 0) {
+      /*
+      Modifikasi Data: Memetakan properti database (nama, kategori, deskripsi, dan lain-lain)
+      ke dalam format properti yang digunakan fungsi UI BandungAja 
+      */
+     places = backendData.map(item => ({
+      id: item.id,
+      name: item.nama,      // nama -> UI: name
+      area: item.alamat ? item.alamat.split(',')[0] : "Bandung",    // Depan alamat sebagai area
+      cat: item.kategori ? item.kategori.charAt(0).toUpperCase() + item.kategori.slice(1) : "Wisata",     // Agar kategori kapital
+      price: item.harga_min === 0 ? "free" :
+       (item.harga_min < 50000 ? "cheap" :
+       (item.harga_min <= 150000 ? "mid" : "premium")),    // Menyesuaikan filter harga di app.js
+      rating: item.rating || 0.0,
+      visits: item.jumlah_review || 0,
+      badge: item.rating >= 4.5 ? "Ikonik" : "Trending",    // Badge berdasarkan rating
+      desc: item.deskripsi || "Tidak ada deskripsi",        // database deskripsi -> UI: desc
+      image_url: item.image_url ?
+        (item.image_url.startsWith('http' ) ?
+          item.image_url : 
+          `http://127.0.0.1:8000/static/${item.image_url}`) :
+        null             // Menyimpan url yang baru diperbaiki pada database    
+     }));
+
+     console.log("Data tempat berhasil diperbarui dari Supabase!");
+
+     // Menggunakan fungsi render bawaan di app.js untuk update data baru
+     if (typeof filterPlaces === "function") filterPlaces();
+     if (typeof renderTop10 === "function") renderTop10();
+     if (typeof renderSaved === "function") renderSaved();
+     if (document.getElementById('homePlacesGrid') && typeof initHome === "function") initHome();
+    }
+  } catch (error) {
+    // Jika API gagal diakses, otomatis menggunakan data dummy tanpa crash
+    console.warn("Menggunakan data dummy lokal karena: ", error.message);
+  }
+}
 
 const itineraries = [
   {
@@ -90,7 +154,7 @@ const pageBgMap = {
 };
 
 // ===== PAGE NAVIGATION =====
-function showPage(pageId) {
+async function showPage(pageId) {
   // Loading bar
   const bar = document.getElementById('loadingBar');
   bar.style.width = '40%';
@@ -135,15 +199,19 @@ function showPage(pageId) {
   }, 200);
 }
 
-
 // ===== PLACE CARD RENDER =====
 function createPlaceCard(place, idx) {
   const isSaved = savedPlaces.includes(place.id);
   const g = gradients[idx % gradients.length];
-  return `
+
+  const bgStyle = place.image_url ? 
+    `background-image: url('${place.image_url}'); background-size: cover; background-position: center;` : 
+    `background: ${g};`;
+
+return `
     <div class="place-card" onclick="showToast('Membuka ${place.name}...')">
       <div class="place-img">
-        <div class="place-img-bg" style="background:${g}"></div>
+        <div class="place-img-bg" style="${bgStyle}"></div>
         <div class="place-badge">${place.badge}</div>
         <button class="place-bookmark" onclick="event.stopPropagation();toggleSave(${place.id},this)">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="${isSaved ? '#C0F11C' : 'none'}" stroke="${isSaved ? '#C0F11C' : 'white'}" stroke-width="2"><path d="M19 21L12 16L5 21V5C5 4.46957 5.21071 3.96086 5.58579 3.58579C5.96086 3.21071 6.46957 3 7 3H17C17.5304 3 18.0391 3.21071 18.4142 3.58579C18.7893 3.96086 19 4.46957 19 5V21Z"/></svg>
@@ -162,15 +230,33 @@ function createPlaceCard(place, idx) {
   `;
 }
 
-function toggleSave(id, btn) {
+async function toggleSave(id, btn) {
+  // Cek Login (Wajib untuk koneksi backend)
+  const token = localStorage.getItem('token');
+
+  if (!token) {
+    showToast('Silakan login terlebih dahulu');
+    return;
+  }
+
   if (savedPlaces.includes(id)) {
-    savedPlaces = savedPlaces.filter(x => x !== id);
-    showToast('Dihapus dari simpanan');
-    btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M19 21L12 16L5 21V5C5 4.46957 5.21071 3.96086 5.58579 3.58579C5.96086 3.21071 6.46957 3 7 3H17C17.5304 3 18.0391 3.21071 18.4142 3.58579C18.7893 3.96086 19 4.46957 19 5V21Z"/></svg>`;
+    // LOGIKA HAPUS (Lapor ke Backend)
+    const response = await authorizedFetch(`/wishlist/${id}`, { method: 'DELETE' });
+
+    if (response && response.ok) {
+      savedPlaces = savedPlaces.filter(x => x !== id);
+      showToast('Dihapus dari simpanan');
+      btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M19 21L12 16L5 21V5C5 4.46957 5.21071 3.96086 5.58579 3.58579C5.96086 3.21071 6.46957 3 7 3H17C17.5304 3 18.0391 3.21071 18.4142 3.58579C18.7893 3.96086 19 4.46957 19 5V21Z"/></svg>`;
+    }
   } else {
-    savedPlaces.push(id);
-    showToast('Disimpan! ❤️');
-    btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="#C0F11C" stroke="#C0F11C" stroke-width="2"><path d="M19 21L12 16L5 21V5C5 4.46957 5.21071 3.96086 5.58579 3.58579C5.96086 3.21071 6.46957 3 7 3H17C17.5304 3 18.0391 3.21071 18.4142 3.58579C18.7893 3.96086 19 4.46957 19 5V21Z"/></svg>`;
+    // LOGIKA TAMBAH (Lapor ke Backend)
+    const response = await authorizedFetch(`/wishlist/${id}`, { method: 'POST' });
+
+    if (response && response.ok) {
+      savedPlaces.push(id);
+      showToast('Disimpan! ❤️');
+      btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="#C0F11C" stroke="#C0F11C" stroke-width="2"><path d="M19 21L12 16L5 21V5C5 4.46957 5.21071 3.96086 5.58579 3.58579C5.96086 3.21071 6.46957 3 7 3H17C17.5304 3 18.0391 3.21071 18.4142 3.58579C18.7893 3.96086 19 4.46957 19 5V21Z"/></svg>`;
+    }
   }
 }
 
@@ -368,10 +454,31 @@ function renderTop10() {
 
 // ===== PROFILE =====
 function renderProfile() {
+  const user = JSON.parse(localStorage.getItem('user'));
+  if (user) {
+    // Update nama di bagian Hero Profile
+    const profileNameEl = document.querySelector('.profile-name');
+    const profileAvatarEl = document.querySelector('.profile-avatar');
+    const fullName = document.querySelector('#page-profile .profile-username');
+    
+    if (profileNameEl) profileNameEl.innerText = `${user.nama_depan} ${user.nama_belakang || ''}`;
+    if (profileAvatarEl) profileAvatarEl.innerText = user.nama_depan.charAt(0).toUpperCase();
+  }
+
   switchProfileSection(document.querySelector('.profile-menu-item'), 'info');
 }
 
 function switchProfileSection(btn, section) {
+  // Ambil data user dari localStorage
+  const user = JSON.parse(localStorage.getItem('user')) || {
+    nama_depan: 'Tamu',
+    nama_belakang: '',
+    email: '-',
+    lokasi: 'Bandung'
+  };
+
+  const fullName = `${user.nama_depan} ${user.nama_belakang || ''}`.trim();
+  
   document.querySelectorAll('.profile-menu-item').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   
@@ -382,12 +489,30 @@ function switchProfileSection(btn, section) {
       <div class="profile-section">
         <div class="profile-section-title">Informasi Pribadi</div>
         <div class="profile-info-grid">
-          <div class="profile-info-item"><div class="profile-info-label">Nama Lengkap</div><div class="profile-info-value">Andi Pratama</div></div>
-          <div class="profile-info-item"><div class="profile-info-label">Username</div><div class="profile-info-value">@andipratama</div></div>
-          <div class="profile-info-item"><div class="profile-info-label">Email</div><div class="profile-info-value">andi@email.com</div></div>
-          <div class="profile-info-item"><div class="profile-info-label">Kota Asal</div><div class="profile-info-value">Bandung</div></div>
-          <div class="profile-info-item"><div class="profile-info-label">Bergabung</div><div class="profile-info-value">Januari 2024</div></div>
-          <div class="profile-info-item"><div class="profile-info-label">Level Explorer</div><div class="profile-info-value" style="color:var(--secondary)">⭐ Level 5</div></div>
+          <div class="profile-info-item">
+            <div class="profile-info-label">Nama Lengkap</div>
+              <div class="profile-info-value">${fullName}</div>
+          </div>
+          <div class="profile-info-item">
+            <div class="profile-info-label">Username</div>
+            <div class="profile-info-value">@${fullName}</div>
+          </div>
+          <div class="profile-info-item">
+            <div class="profile-info-label">Email</div>
+            <div class="profile-info-value">${user.email}</div>
+          </div>
+          <div class="profile-info-item">
+            <div class="profile-info-label">Kota Asal</div>
+            <div class="profile-info-value">${user.lokasi || 'Indonesia'}</div>
+          </div>
+          <div class="profile-info-item">
+            <div class="profile-info-label">Bergabung</div>
+            <div class="profile-info-value">Januari 2024</div>
+          </div>
+          <div class="profile-info-item">
+            <div class="profile-info-label">Level Explorer</div>
+            <div class="profile-info-value" style="color:var(--secondary)">⭐ Level 5 (${user.role || 'User'})</div>
+          </div>
         </div>
         <button class="btn-primary" style="margin-top:24px" onclick="showToast('Profil disimpan!')">Simpan Perubahan</button>
       </div>
@@ -461,12 +586,23 @@ function switchProfileSection(btn, section) {
       </div>
     `;
   } else if (section === 'settings') {
+    const fullName = `${user.nama_depan} ${user.nama_belakang || ''}`.trim();
+
     main.innerHTML = `
       <div class="profile-section">
         <div class="profile-section-title">Pengaturan Akun</div>
-        <div class="itin-form-row"><label class="itin-form-label">Username</label><input class="itin-form-input" value="@andipratama"></div>
-        <div class="itin-form-row"><label class="itin-form-label">Email</label><input class="itin-form-input" value="andi@email.com" type="email"></div>
-        <div class="itin-form-row"><label class="itin-form-label">Password Baru</label><input class="itin-form-input" placeholder="••••••••" type="password"></div>
+        <div class="itin-form-row">
+          <label class="itin-form-label">Username</label>
+          <input class="itin-form-input" value="${fullName}">
+        </div>
+        <div class="itin-form-row">
+          <label class="itin-form-label">Email</label>
+          <input class="itin-form-input" value="${user.email}" type="email">
+        </div>
+        <div class="itin-form-row">
+          <label class="itin-form-label">Password Baru</label>
+          <input class="itin-form-input" placeholder="••••••••" type="password" value="">
+        </div>
         <button class="btn-primary" onclick="showToast('Pengaturan disimpan!')">Simpan Pengaturan</button>
       </div>
       <div class="profile-section">
@@ -592,3 +728,413 @@ window.onload = () => {
     });
   }, 500);
 };
+
+/* 
+=========== FUNGSI-FUNGSI BARU =========== 
+Semua fungsi dibawah untuk integrasi backend
+*/
+
+// ===== FUNGSI LOGIN & AUTH =====
+async function loginUser(email, password) {
+  try {
+    const response = await fetch(`${API_URL}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      // SIMPAN DATA KE STORAGE
+      localStorage.setItem('token', data.access_token);
+      localStorage.setItem('user', JSON.stringify(data.user)); // Simpan profil user
+
+      const fullName = `${data.user.nama_depan} ${data.user.nama_belakang || ''}`.trim();
+      showToast(`Selamat datang kembali, ${fullName}! 👋`);
+      closeModal('loginModal');
+
+      // Sinkronisasi data setelah login
+      if (typeof syncWishlist === "function") syncWishlist();
+      
+      // Refresh UI (misal: ganti tombol 'Masuk' jadi nama user)
+      setTimeout(() => location.reload(), 1000);
+    } else {
+      showToast(data.detail || 'Login gagal, cek email/password');
+    }
+  } catch (error) {
+    showToast('Gagal terhubung ke server auth');
+  }
+}
+
+// Fungsi Logout untuk menghapus data
+function logoutUser() {
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+  showToast('Berhasil keluar');
+  showPage('home');
+  setTimeout(() => {
+    location.reload();
+  }, 1000);
+  location.reload(); // Refresh untuk reset state UI
+}
+
+async function handleRegister() {
+  const firstName = document.getElementById('nama_depan').value.trim();
+  const lastName = document.getElementById('nama_belakang').value.trim();
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value.trim();
+
+  if(!firstName || !email || !password) {
+    showToast("Nama depan, Email, dan Password wajib diisi!");
+    return;
+  }
+
+  // Gabungkan nama depan dan belakang sebagai "nama"
+  const nama = [firstName, lastName].filter(Boolean).join(' ');
+
+  try {
+    const response = await fetch(`${API_URL}/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        nama_depan: firstName,
+        nama_belakang: lastName,
+        email: email,
+        password: password
+      })
+    });
+
+    const data = await response.json();
+    if (response.ok) {
+      showToast('Akun berhasil dibuat! Silakan masuk.');
+      closeModal('registerModal');
+      showModal('loginModal');
+    } else {
+      showToast(data.detail || 'Gagal mendaftar');
+    }
+  } catch (error) {
+    showToast('Gagal terhubung ke server');
+  }
+}
+
+function updateProfileHero(user) {
+  const roleBadge = user.role === 'developer' ? '⭐ Developer' : '🧑 User';
+  
+  const heroUsername = document.querySelector('#page-profile .profile-username');
+  const heroKunjungan = document.querySelector('#page-profile .profile-stat-num');
+
+  if (heroUsername) heroUsername.textContent = user.email + ' · Explorer';
+  // Untuk statistik, Anda bisa hitung dari data asli atau biarkan placeholder
+}
+
+async function authorizedFetch(endpoint, options = {}) {
+  const token = localStorage.getItem('token');
+  const headers = {
+    'Content-Type': 'application/json',
+    ...options.headers,
+  };
+
+  if(token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  // endpoint yang dikombinasikan dengan API_URL
+  const response = await fetch(`${API_URL}${endpoint}`, {
+    ...options,
+    headers: headers
+  });
+
+  if(response.status === 401) {
+    showToast("Sesi habis, silahkan login kembali.");
+    if(typeof logoutUser === "function") logoutUser();
+    return null;
+  }
+  return response;
+}
+
+// ===== Export Itinerary ke PDF =====
+async function exportItineraryToPDF(itineraryId) {
+  try {
+    const token = localStorage.getItem('token');
+    if(!token) {
+      showToast('Silakan login terlebih dahulu');
+      return;
+    }
+
+    showToast('Sedang membuat PDF...');
+
+    // API_URL sudah megandung '/api', otomatis memanggil routers pada backend
+    const response = await fetch(`${API_URL}/itinerary/${itineraryId}/export-pdf`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if(!response.ok) {
+      throw new Error('Gagal mengekspor PDF');
+    }
+
+    // Download PDF
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL();
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `itinerary_${itineraryId}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+
+    showToast('PDF berhasil diunduh! 📄');
+  } catch (error) {
+    console.error(error);
+    showToast('Gagal mengekspor PDF');
+  }
+}
+
+// ===== FUNGSI ITINERARY =====
+async function getItineraris() {
+  try {
+    const response = await authorizedFetch('/itinerary');
+    if(!response || !response.ok) {
+      throw new Error('Gagal memuat itinerary');
+    }
+    return await response.json();
+  } catch (error) {
+    console.error(error);
+    showToast('Gagal memuat itinerary');
+    return [];
+  }
+}
+
+async function createItinerery(judul, total_hari) {
+  try{
+    const response = await authorizedFetch('/itinerary', {
+      method: 'POST',
+      body: JSON.stringify({ judul, total_hari })
+    });
+
+    if(!response) {
+      return null;
+    }
+
+    const data = await response.json();
+    if(!response.ok) {
+      showToast('Itinerary berhasil dibuat! 🎉');
+      return data;
+    } else {
+      showToast(data.detail || 'Gagal membuat itinerary');
+      return null;
+    }
+  } catch (error) {
+    console.error(error);
+    showToast('Gagal membuat itinerary');
+    return null;
+  }
+}
+
+async function getItineraryDetail(itineraryId){ 
+  try {
+    const response = await authorizedFetch(`/itinerary/${itineraryId}`);
+    if(!response || !response.ok) {
+      throw new Error('Gagal memuat detail itinerary');
+      return await response.json();
+    }
+  } catch (error) { 
+    console.error(error);
+    showToast('Gagal memuat detail itinerary');
+    return null;
+  }
+}
+
+async function addItemToItinerary(itineraryId, tempatId, hari, urutan, jam = null, catatan = null) {
+  try{
+    const response = await authorizedFetch(`/itinerary/${itineraryId}/items`, {
+      method: 'POST',
+      body: JSON.stringify({ tempat_Id: tempatId, hari, urutan, jam, catatan })
+    });
+
+    if(!response) {
+      return null;
+    }
+
+    const data = await response.json();
+    if(response.ok) {
+      showToast(data.message);
+      return data;
+    } else {
+      showToast(data.detail || 'Gagal menambahkan tempat ke Itinerary');
+      return null;
+    }
+  } catch (error) {
+    console.error(error);
+    showToast('Gagal menambahkan tempat ke itinerary');
+    return null;    
+  }
+}
+
+
+
+async function deleteItinerary(itinereryId) {
+  try {
+    const response = await authorizedFetch(`/itinerary/${itinereryId}`, {
+      method: 'DELETE'
+    });
+
+    if(!response) {
+      return;
+    }
+
+    if(response.ok) {
+      showToast('Itinerary berhasil dihapus');
+      if (typeof renderItineraries === 'function') renderItineraries();
+    }
+  } catch (error) {
+    console.error(error);
+    showToast('Gagal menghapus itinerary');
+    return null;    
+  }
+}
+
+async function deleteItineraryItem(itinereryId, itemId) {
+  try {
+    const response = await authorizedFetch(`/itinerary/${itinereryId}/items/${itemId}`, {
+      method: 'DELETE'
+    });
+
+    if(!response) {
+      return;
+    }
+
+    const data = await response.json();
+
+    if(response.ok) {
+      showToast(data.message);
+      // Refresh itinerary detail
+      const detail = await getItineraryDetail(itinereryId);
+      if (detail && typeof renderItineraryDetail === 'function') {
+        renderItineraryDetail(detail);
+      }
+    }
+  } catch (error) {
+    console.error(error);
+    showToast('Gagal menghapus item');
+    return null;    
+  }
+}
+
+// ===== ADD & REMOVE FROM WISHLIST =====
+async function syncWishlist() {
+  const token = localStorage.getItem('token');
+  if (!token) return;
+
+  try {
+    const response = await authorizedFetch('/wishlist');
+    if (response && response.ok) {
+      const data = await response.json();
+      // Simpan ID tempat yang ada di wishlist ke variabel global savedPlaces
+      savedPlaces = data.map(item => item.id);
+      
+      // Render ulang UI agar ikon bookmark berubah warna
+      if (typeof renderPlaces === 'function') renderPlaces();
+      if (typeof renderSaved === 'function') renderSaved();
+      
+      console.log("Wishlist berhasil disinkronkan dari Supabase!");
+    }
+  } catch (error) {
+    console.error("Gagal sinkronisasi wishlist:", error);
+  }
+}
+
+async function removeFromWhislist(tempatId) {
+  try {
+    const response = await authorizedFetch(`/wishlist/${tempatId}`, {
+      method: 'DELETE'
+    })
+
+    if (!response) {
+      return;
+    }
+
+    if(response.ok) {
+      showToast("Dihapus dari wishlist");
+      if(typeof renderSaved === 'function') renderSaved();
+    }
+  } catch (error) {
+    console.error(error);
+    showToast('Gagal menghapus dari wishlist');
+  }
+}
+
+// ===== HIDDEN GEM & NEARBY =====
+async function getHiddenGem(minRating = 4.0, maxReview = 100) {
+  try {
+    const response = await fetch(`${API_URL}/tempat/hidden-gem?min_rating=${minRating}&max_review=${maxReview}`);
+    if(!response.ok) {
+      throw new Error(`Gagal memuat hidden gem`);
+      return await response.json();
+    }
+  } catch (error) {
+    console.error(error);
+    showToast('Gagal menghapus dari wishlist');
+    return [];
+  }
+}
+
+async function getNearby(lat, lon, radius = 5) {
+  try {
+    const response = await fetch(`${API_URL}/tempat/nearby?lat=${lat}&lon=${lon}&radius=${radius}`);
+
+    if(!response.ok) {
+      throw new Error('Gagal memuat tempat terdekat');
+      return await response.json();
+    }
+  } catch (error) {
+    console.error(error);
+    showToast('Gagal memuat tempat terdekat');
+    return [];
+  }
+}
+
+// ===== HIDDEN GEM & NEARBY =====
+async function getStatusTempat(tempatId) {
+  try {
+    const response = await fetch(`${API_URL}/status/${tempatId}`);
+
+    if(!response.ok) {
+      return null;
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
+}
+
+// Export fungsi ke objek global window untuk dipanggil langsung dari HTML
+window.loginUser = loginUser;
+window.logoutUser = logoutUser;
+window.handleRegister = handleRegister;
+window.exportItineraryToPDF = exportItineraryToPDF;
+window.getItineraris = getItineraris;
+window.createItinerary = createItinerary;
+window.getItineraryDetail = getItineraryDetail;
+window.addItemToItinerary = addItemToItinerary;
+window.deleteItinerary = deleteItinerary;
+window.deleteItineraryItem = deleteItineraryItem;
+window.syncWishlist = syncWishlist;
+window.removeFromWhislist = removeFromWhislist;
+window.getHiddenGem = getHiddenGem;
+window.getNearby = getNearby;
+window.getStatusTempat = getStatusTempat;
+
+document.addEventListener('DOMContentLoaded', () => {
+  fetchPlaceFromBackend();
+  syncWishlist();
+  showPage('home');
+});
+
+window.fetchPlaceFromBackend = fetchPlaceFromBackend;
