@@ -59,6 +59,23 @@ const gradients = [
 let currentCategory = '';
 let savedPlaces = [1, 3, 5, 8, 10];
 let nearbyMap = null;
+let currentGemCategory = 'all';
+
+// ===== HIDDEN GEM DATA =====
+const hiddenGems = [
+  { id:101, name:"Curug Dago", area:"Dago", cat:"Alam", rating:4.8, visitors:320, badge:"Air Terjun", desc:"Air terjun tersembunyi di balik pepohonan Dago yang rindang, suasana tenang jauh dari keramaian.", tips:"Datang pagi hari sebelum jam 8 untuk menikmati kabut pagi yang magis.", discovered:128 },
+  { id:102, name:"Gang Bapa Soewirja", area:"Braga", cat:"Seni", rating:4.6, visitors:210, badge:"Street Art", desc:"Gang sempit bersejarah di kawasan Braga yang dipenuhi mural seniman lokal Bandung.", tips:"Paling indah difoto saat golden hour sekitar jam 5-6 sore.", discovered:89 },
+  { id:103, name:"Warung Nasi Ema", area:"Cicendo", cat:"Kuliner", rating:4.9, visitors:150, badge:"Warisan", desc:"Warung nasi pecel legendaris sejak 1978 yang hanya buka sampai jam 10 pagi, langganan warga asli Bandung.", tips:"Antri sebelum jam 7 pagi atau kehabisan!", discovered:312 },
+  { id:104, name:"Gedong Cai Cibeunying", area:"Dago", cat:"Wisata", rating:4.5, visitors:280, badge:"Bersejarah", desc:"Bangunan reservoir air kolonial Belanda yang tersembunyi di tengah kota, arsitektur indah yang jarang diketahui.", tips:"Izin kunjungan bisa diminta di kantor PDAM setempat.", discovered:67 },
+  { id:105, name:"Rumah Kopi Purnama", area:"Braga", cat:"Café", rating:4.7, visitors:190, badge:"Heritage", desc:"Kafe tertua di Bandung sejak 1930 yang tersembunyi di pojok Braga, kopi susu jahenya legendaris.", tips:"Pesan kopi susu jahe hangat, menu yang tak ada di tempat lain.", discovered:445 },
+  { id:106, name:"Bukit Moko Pagi", area:"Dago", cat:"Alam", rating:4.9, visitors:380, badge:"Sunrise", desc:"Titik sunrise terbaik Bandung yang masih relatif sepi, view 360° seluruh kota saat fajar.", tips:"Berangkat tengah malam agar tiba tepat saat matahari terbit jam 5:30.", discovered:203 },
+  { id:107, name:"Kedai Sate Sapi Bu Asih", area:"Buah Batu", cat:"Kuliner", rating:4.8, visitors:130, badge:"Otentik", desc:"Sate sapi yang dimasak arang dengan bumbu rahasia turun-temurun, hanya buka malam Jumat & Sabtu.", tips:"Pesan minimal 2 hari sebelumnya karena selalu habis.", discovered:156 },
+  { id:108, name:"Ruang Zine Bandung", area:"Cihampelas", cat:"Seni", rating:4.4, visitors:95, badge:"Underground", desc:"Galeri zine dan seni independen kecil milik komunitas mahasiswa seni ITB, event bulanan gratis.", tips:"Ikuti akun Instagram mereka untuk info jadwal event dan pameran.", discovered:78 },
+  { id:109, name:"Taman Cibeunying Tersembunyi", area:"Dago", cat:"Alam", rating:4.6, visitors:240, badge:"Hijau", desc:"Taman kecil di balik kompleks perumahan Cibeunying dengan kolam ikan tua dan pohon trembesi raksasa.", tips:"Waktu terbaik sore hari saat anak-anak bermain dan suasana keluarga.", discovered:134 },
+  { id:110, name:"Depot Es Krim Vincentia", area:"Braga", cat:"Kuliner", rating:4.7, visitors:175, badge:"Vintage", desc:"Es krim artisan tertua Bandung sejak 1950, rasa originalnya belum pernah berubah selama 7 dekade.", tips:"Rasa sutra (vanilla lokal) adalah menu paling langka yang wajib dicoba.", discovered:267 },
+  { id:111, name:"Kedai Batik Sunda Pak Wardi", area:"Cicendo", cat:"Seni", rating:4.5, visitors:88, badge:"Budaya", desc:"Workshop batik tulis Sunda kecil di rumah tua, bisa belajar membatik langsung dari sang maestro.", tips:"Hubungi terlebih dahulu via telepon untuk sesi belajar privat.", discovered:44 },
+  { id:112, name:"Warung Lalapan Bu Nani", area:"Lembang", cat:"Kuliner", rating:4.8, visitors:145, badge:"Pedesaan", desc:"Saung lalapan autentik di pinggir sawah Lembang dengan pemandangan gunung dan ayam kampung bakar.", tips:"Nikmati sambil duduk di saung bambu langsung di tepi sawah.", discovered:198 },
+];
 
 // Map page → background class
 const pageBgMap = {
@@ -69,6 +86,7 @@ const pageBgMap = {
   saved:     'bg-saved',
   itinerary: 'bg-itinerary',
   profile:   'bg-profile',
+  hiddengem: 'bg-hiddengem',
 };
 
 // ===== PAGE NAVIGATION =====
@@ -106,6 +124,7 @@ function showPage(pageId) {
     if (pageId === 'top10') renderTop10();
     if (pageId === 'profile') renderProfile();
     if (pageId === 'home') initHome();
+    if (pageId === 'hiddengem') renderHiddenGem();
     
     // Trigger fade animations
     setTimeout(() => {
@@ -465,6 +484,71 @@ function switchProfileSection(btn, section) {
       </div>
     `;
   }
+}
+
+// ===== HIDDEN GEM =====
+function setGemCategory(btn, cat) {
+  currentGemCategory = cat;
+  document.querySelectorAll('.gem-filter').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderHiddenGem();
+}
+
+function renderHiddenGem() {
+  const filtered = currentGemCategory === 'all'
+    ? hiddenGems
+    : hiddenGems.filter(g => g.cat === currentGemCategory);
+
+  document.getElementById('gemCount').textContent = filtered.length;
+
+  const priceGradients = [
+    'linear-gradient(135deg,#003585 0%,#1a5fc4 60%,rgba(192,241,28,0.15) 100%)',
+    'linear-gradient(135deg,#0a3d6e 0%,#004AAD 60%,rgba(192,241,28,0.1) 100%)',
+    'linear-gradient(135deg,#061e3a 0%,#1a5fc4 70%,rgba(192,241,28,0.2) 100%)',
+    'linear-gradient(135deg,#003585 0%,#0d3d7a 50%,rgba(192,241,28,0.12) 100%)',
+  ];
+
+  const catIcons = { Alam:'🌿', Kuliner:'🍜', Café:'☕', Wisata:'🏛️', Seni:'🎨' };
+
+  document.getElementById('gemGrid').innerHTML = filtered.map((gem, i) => `
+    <div class="gem-card" onclick="showGemDetail(${gem.id})">
+      <div class="gem-card-img" style="background:${priceGradients[i % priceGradients.length]}">
+        <div class="gem-card-badge">${gem.badge}</div>
+        <div class="gem-card-secret">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 8L12 22L22 8L12 2Z" fill="#C0F11C" opacity="0.9"/></svg>
+          <span>${gem.discovered} orang tahu ini</span>
+        </div>
+        <div class="gem-card-overlay"></div>
+        <div class="gem-card-cat-icon">${catIcons[gem.cat] || '📍'}</div>
+      </div>
+      <div class="gem-card-body">
+        <div class="gem-card-top">
+          <div class="gem-card-name">${gem.name}</div>
+          <div class="gem-card-rating">★ ${gem.rating}</div>
+        </div>
+        <div class="gem-card-meta">
+          <span class="gem-card-area">📍 ${gem.area}</span>
+          <span class="gem-card-vis">👤 &lt;${gem.visitors > 500 ? '1rb' : gem.visitors} pengunjung</span>
+        </div>
+        <p class="gem-card-desc">${gem.desc}</p>
+        <div class="gem-tips-box">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" fill="#C0F11C"/></svg>
+          <span>${gem.tips}</span>
+        </div>
+      </div>
+    </div>
+  `).join('') || `
+    <div style="grid-column:1/-1;text-align:center;padding:80px 20px;color:var(--text-muted)">
+      <div style="font-size:48px;margin-bottom:16px">💎</div>
+      <div style="font-size:18px;font-weight:700;margin-bottom:8px">Belum ada Hidden Gem di kategori ini</div>
+      <div style="font-size:14px">Coba kategori lain atau jelajahi semua!</div>
+    </div>`;
+}
+
+function showGemDetail(id) {
+  const gem = hiddenGems.find(g => g.id === id);
+  if (!gem) return;
+  showToast(`🔓 Membuka ${gem.name}...`);
 }
 
 // ===== MODAL =====

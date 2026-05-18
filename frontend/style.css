@@ -62,7 +62,7 @@ body.bg-top10   { background-image: url('asset/PASUPATI.png'); }
 body.bg-saved   { background-image: url('asset/GEDUNGMERDEKA.png'); }
 body.bg-itinerary { background-image: url('asset/MASJIDALJABBAR.png'); }
 body.bg-profile { background-image: url('asset/ASIAAFRIKA.png'); }
-}
+body.bg-hiddengem { background-image: url('asset/GEDUNGMERDEKA.png'); }
 
 /* Darken the background image heavily so text is always readable */
 body::before {
@@ -639,7 +639,7 @@ body::after {
   padding: 100px 80px 40px;
   background: linear-gradient(to bottom, rgba(192,241,28,0.07), transparent);
 }
-.top-title { font-size: 36px; font-weight: 800; color: var(--text-primary); }
+.top-title { font-size: 36px; font-weight: 800; color: var(--primary); }
 .top-title span { color: var(--secondary); }
 .top-grid { padding: 0 80px 80px; }
 .top-item {
@@ -1010,10 +1010,250 @@ svg.icon {
   50%       { box-shadow: 0 0 0 10px rgba(192,241,28,0); }
 }
 
+/* ===== HIDDEN GEM PAGE ===== */
+.gem-header {
+  padding: 100px 60px 40px;
+  background: linear-gradient(180deg, rgba(8,13,24,0.95) 0%, rgba(8,13,24,0.7) 100%);
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.gem-header-top {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 28px;
+}
+
+.gem-icon-wrap {
+  width: 72px; height: 72px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(0,74,173,0.3), rgba(192,241,28,0.15));
+  border: 1.5px solid rgba(192,241,28,0.35);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 0 30px rgba(192,241,28,0.12), inset 0 1px 0 rgba(255,255,255,0.06);
+  animation: gemPulse 3s ease-in-out infinite;
+}
+
+@keyframes gemPulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(192,241,28,0.12), inset 0 1px 0 rgba(255,255,255,0.06); }
+  50%       { box-shadow: 0 0 40px rgba(192,241,28,0.28), inset 0 1px 0 rgba(255,255,255,0.06); }
+}
+
+.gem-title {
+  font-size: 36px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+.gem-title span { color: var(--secondary); }
+
+.gem-subtitle {
+  font-size: 15px;
+  color: var(--text-muted);
+  margin-top: 6px;
+  max-width: 520px;
+  line-height: 1.55;
+}
+
+/* Stats row */
+.gem-stats-row {
+  display: flex;
+  gap: 32px;
+  margin-bottom: 28px;
+}
+.gem-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.gem-stat span {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--secondary);
+}
+.gem-stat small {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* Filter tabs */
+.gem-filter-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.gem-filter {
+  padding: 8px 18px;
+  border-radius: 50px;
+  border: 1.5px solid var(--glass-border);
+  background: var(--glass-bg);
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.gem-filter:hover {
+  border-color: rgba(192,241,28,0.4);
+  color: var(--text-primary);
+  background: rgba(192,241,28,0.06);
+}
+.gem-filter.active {
+  background: var(--secondary);
+  color: var(--bg-base);
+  border-color: var(--secondary);
+  box-shadow: 0 0 16px rgba(192,241,28,0.3);
+}
+
+/* Content grid */
+.gem-content {
+  padding: 40px 60px 80px;
+}
+.gem-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+/* Gem card */
+.gem-card {
+  background: var(--bg-card);
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1.5px solid var(--glass-border);
+  cursor: pointer;
+  transition: var(--transition);
+  position: relative;
+}
+.gem-card:hover {
+  transform: translateY(-6px);
+  border-color: rgba(192,241,28,0.35);
+  box-shadow: 0 16px 48px rgba(0,0,0,0.5), 0 0 24px rgba(192,241,28,0.1);
+}
+
+/* Card image area */
+.gem-card-img {
+  height: 180px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 12px 14px;
+}
+.gem-card-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, transparent 30%, rgba(8,13,24,0.7) 100%);
+  pointer-events: none;
+}
+.gem-card-cat-icon {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  font-size: 22px;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5));
+}
+
+/* Badge */
+.gem-card-badge {
+  position: relative; z-index: 1;
+  background: rgba(8,13,24,0.75);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(192,241,28,0.3);
+  color: var(--secondary);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  align-self: flex-start;
+}
+
+/* "N orang tahu ini" counter */
+.gem-card-secret {
+  position: relative; z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(8,13,24,0.75);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(192,241,28,0.2);
+  border-radius: 20px;
+  padding: 4px 10px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-weight: 600;
+  align-self: flex-start;
+}
+
+/* Card body */
+.gem-card-body {
+  padding: 18px 20px 20px;
+}
+.gem-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.gem-card-name {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--text-primary);
+}
+.gem-card-rating {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--secondary);
+  white-space: nowrap;
+}
+.gem-card-meta {
+  display: flex;
+  gap: 14px;
+  margin-bottom: 10px;
+}
+.gem-card-area, .gem-card-vis {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.gem-card-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.55;
+  margin-bottom: 14px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Tips box */
+.gem-tips-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: rgba(192,241,28,0.07);
+  border: 1px solid rgba(192,241,28,0.15);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
 /* ===== RESPONSIVE ===== */
 @media (max-width: 1200px) {
   .features-grid { grid-template-columns: repeat(2,1fr); }
   .places-grid   { grid-template-columns: repeat(2,1fr); }
+  .gem-grid      { grid-template-columns: repeat(2,1fr); }
 }
 @media (max-width: 768px) {
   .navbar { padding: 14px 24px; }
@@ -1023,6 +1263,10 @@ svg.icon {
   .features-grid, .places-grid, .saved-grid { grid-template-columns: 1fr; }
   .itin-content { grid-template-columns: 1fr; }
   .profile-content { grid-template-columns: 1fr; }
+  .gem-header { padding: 100px 24px 32px; }
+  .gem-content { padding: 32px 24px 60px; }
+  .gem-grid { grid-template-columns: 1fr; }
+  .gem-title { font-size: 28px; }
 }
 @media (max-width: 480px) {
   .modal { padding: 1.5rem 1.25rem; }

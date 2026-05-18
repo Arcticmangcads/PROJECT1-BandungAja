@@ -30,6 +30,9 @@
     <button class="nav-link" onclick="showPage('top10')" data-page="top10">Top 10</button>
     <button class="nav-link" onclick="showPage('saved')" data-page="saved">Saved</button>
     <button class="nav-link" onclick="showPage('itinerary')" data-page="itinerary">Itinerary</button>
+    <button class="nav-link" onclick="showPage('hiddengem')" data-page="hiddengem">
+      <span>💎 Hidden Gem</span>
+    </button>
   </div>
   <div class="nav-right">
     <button class="btn-outline" onclick="showModal('loginModal')">Masuk</button>
@@ -124,7 +127,7 @@
         <div class="feature-name">Itinerary</div>
         <div class="feature-desc">Buat rencana perjalanan lengkap sesuai selera dan budget</div>
       </div>
-      <div class="feature-card fade-up" style="transition-delay:0.35s">
+      <div class="feature-card fade-up" onclick="showPage('hiddengem')" style="transition-delay:0.35s">
         <div class="feature-icon">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="#C0F11C" stroke-width="2"/><path d="M12 6V12L16 14" stroke="#C0F11C" stroke-width="2" stroke-linecap="round"/></svg>
         </div>
@@ -329,6 +332,48 @@
     <div style="font-size:15px;color:var(--text-muted);margin-top:6px;">Destinasi terpopuler berdasarkan rating & kunjungan minggu ini</div>
   </div>
   <div class="top-grid" id="top10Grid"></div>
+</div>
+
+<!-- ===== HIDDEN GEM PAGE ===== -->
+<div class="page" id="page-hiddengem">
+  <div class="gem-header">
+    <div class="gem-header-top">
+      <div class="gem-icon-wrap">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
+          <path d="M12 2L2 8L12 22L22 8L12 2Z" fill="url(#gemGrad)" stroke="rgba(192,241,28,0.4)" stroke-width="0.5"/>
+          <path d="M2 8H22M12 2L6 8L12 22M12 2L18 8L12 22" stroke="rgba(192,241,28,0.25)" stroke-width="0.5"/>
+          <defs>
+            <linearGradient id="gemGrad" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#C0F11C" stop-opacity="0.9"/>
+              <stop offset="0.5" stop-color="#004AAD" stop-opacity="0.8"/>
+              <stop offset="1" stop-color="#C0F11C" stop-opacity="0.6"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+      <div>
+        <div class="gem-title">Hidden <span>Gem</span> Bandung</div>
+        <div class="gem-subtitle">Tempat rahasia yang belum banyak diketahui — hanya untuk penjelajah sejati</div>
+      </div>
+    </div>
+    <div class="gem-stats-row">
+      <div class="gem-stat"><span id="gemCount">0</span><small>Tempat Tersembunyi</small></div>
+      <div class="gem-stat"><span>4.7★</span><small>Rata-rata Rating</small></div>
+      <div class="gem-stat"><span>&lt; 1rb</span><small>Avg. Pengunjung</small></div>
+    </div>
+    <!-- Kategori Filter -->
+    <div class="gem-filter-row">
+      <button class="gem-filter active" onclick="setGemCategory(this,'all')" data-gemcat="all">✨ Semua</button>
+      <button class="gem-filter" onclick="setGemCategory(this,'Alam')" data-gemcat="Alam">🌿 Alam</button>
+      <button class="gem-filter" onclick="setGemCategory(this,'Kuliner')" data-gemcat="Kuliner">🍜 Kuliner</button>
+      <button class="gem-filter" onclick="setGemCategory(this,'Café')" data-gemcat="Café">☕ Café</button>
+      <button class="gem-filter" onclick="setGemCategory(this,'Wisata')" data-gemcat="Wisata">🏛️ Wisata</button>
+      <button class="gem-filter" onclick="setGemCategory(this,'Seni')" data-gemcat="Seni">🎨 Seni</button>
+    </div>
+  </div>
+  <div class="gem-content">
+    <div class="gem-grid" id="gemGrid"></div>
+  </div>
 </div>
 
 <!-- ===== PROFILE PAGE ===== -->
