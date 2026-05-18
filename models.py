@@ -26,13 +26,14 @@ class Tempat(Base):
 class User(Base):
     __tablename__ = "user"
 
-    id       = Column(Integer, primary_key=True, index=True)
-    nama     = Column(String, nullable=True)
-    email    = Column(String, unique=True, nullable=False)
-    password = Column(String, nullable=False)  # disimpan dalam bentuk hash
-    foto     = Column(String)
-    lokasi   = Column(String)
-    role     = Column(String, default="user")
+    id            = Column(Integer, primary_key=True, index=True)
+    nama_depan    = Column(String, nullable=True)
+    nama_belakang = Column(String, nullable=True)
+    email         = Column(String, unique=True, nullable=False)
+    password      = Column(String, nullable=False)  # disimpan dalam bentuk hash
+    foto          = Column(String)
+    lokasi        = Column(String)
+    role          = Column(String, default="user")
 
 class Wishlist(Base):
     __tablename__ = "wishlist"
