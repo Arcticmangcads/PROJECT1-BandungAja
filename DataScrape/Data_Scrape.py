@@ -5,7 +5,7 @@ import json
 # KONFIGURASI
 # ──────────────────────────────────
  
-INPUT_FILE  = "Data_Kuliner_Wisata_BandungAja.csv"
+INPUT_FILE = r"d:\Python\Data Scrape BandungAja\DataScrape\Data_Kuliner_Wisata_BandungAja.csv"
 OUTPUT_CSV  = "bandungaja_output.csv"
 OUTPUT_JSON = "bandungaja_output.json"
  
