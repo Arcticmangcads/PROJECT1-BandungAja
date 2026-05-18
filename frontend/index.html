@@ -521,6 +521,158 @@
 </div>
 
 
+<!-- ===== DETAIL PLACE PAGE ===== -->
+<div class="page" id="page-detail">
+  <div class="detail-header">
+    <button class="detail-back-btn" onclick="showPage('search')">← Kembali</button>
+    <button class="detail-share-btn" onclick="showToast('Bagikan fitur segera hadir!')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+    </button>
+  </div>
+
+  <div class="detail-hero" id="detailHero"></div>
+
+  <div class="detail-content">
+    <!-- Info Utama -->
+    <div class="detail-main">
+      <div class="detail-title-section">
+        <div>
+          <h1 class="detail-title" id="detailTitle">Nama Tempat</h1>
+          <div class="detail-meta-top">
+            <div class="detail-rating">★ <span id="detailRating">4.8</span></div>
+            <div class="detail-visits">👁️ <span id="detailVisits">15.4K</span> pengunjung</div>
+            <div class="detail-badge" id="detailBadge">Ikonik</div>
+          </div>
+        </div>
+        <button class="detail-save-btn" id="detailSaveBtn" onclick="toggleDetailSave()">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21L12 16L5 21V5C5 4.46957 5.21071 3.96086 5.58579 3.58579C5.96086 3.21071 6.46957 3 7 3H17C17.5304 3 18.0391 3.21071 18.4142 3.58579C18.7893 3.96086 19 4.46957 19 5V21Z"/></svg>
+        </button>
+      </div>
+
+      <!-- Info Lokasi & Kategori -->
+      <div class="detail-info-grid">
+        <div class="detail-info-item">
+          <div class="detail-info-label">📍 Lokasi</div>
+          <div class="detail-info-value" id="detailArea">Braga</div>
+        </div>
+        <div class="detail-info-item">
+          <div class="detail-info-label">🏷️ Kategori</div>
+          <div class="detail-info-value" id="detailCategory">Wisata</div>
+        </div>
+        <div class="detail-info-item">
+          <div class="detail-info-label">💰 Harga</div>
+          <div class="detail-info-value" id="detailPrice">Gratis</div>
+        </div>
+        <div class="detail-info-item">
+          <div class="detail-info-label">⏰ Jam Operasional</div>
+          <div class="detail-info-value">08:00 - 17:00</div>
+        </div>
+      </div>
+
+      <!-- Deskripsi -->
+      <div class="detail-section">
+        <h2 class="detail-section-title">Tentang Tempat Ini</h2>
+        <p class="detail-description" id="detailDescription">Deskripsi tempat akan ditampilkan di sini.</p>
+      </div>
+
+      <!-- Fasilitas -->
+      <div class="detail-section">
+        <h2 class="detail-section-title">Fasilitas</h2>
+        <div class="detail-facilities" id="detailFacilities">
+          <div class="facility-tag">🅿️ Parkir</div>
+          <div class="facility-tag">🚻 Toilet</div>
+          <div class="facility-tag">🍽️ Restoran</div>
+          <div class="facility-tag">📷 Photo Spot</div>
+          <div class="facility-tag">♿ Akses Disabilitas</div>
+          <div class="facility-tag">🛍️ Toko Souvenir</div>
+        </div>
+      </div>
+
+      <!-- Ulasan -->
+      <div class="detail-section">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <h2 class="detail-section-title" style="margin: 0;">Ulasan Pengunjung</h2>
+          <button class="btn-primary" onclick="showToast('Fitur ulasan segera hadir!')">Tulis Ulasan</button>
+        </div>
+        <div class="detail-reviews" id="detailReviews">
+          <div class="review-item">
+            <div class="review-header">
+              <div class="review-user">Budi Santoso</div>
+              <div class="review-rating">★★★★★</div>
+            </div>
+            <div class="review-text">Tempat yang sangat indah dan bersejarah. Pemandu wisata sangat ramah dan informatif. Sangat merekomendasikan untuk dikunjungi!</div>
+            <div class="review-date">2 minggu lalu</div>
+          </div>
+          <div class="review-item">
+            <div class="review-header">
+              <div class="review-user">Siti Nurhaliza</div>
+              <div class="review-rating">★★★★☆</div>
+            </div>
+            <div class="review-text">Bagus, tapi agak ramai saat akhir pekan. Lebih baik datang pada hari kerja untuk pengalaman yang lebih nyaman.</div>
+            <div class="review-date">1 bulan lalu</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tombol Aksi -->
+      <div class="detail-actions">
+        <button class="btn-primary" style="flex: 1;" onclick="showToast('Navigasi GPS segera hadir!')">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+          Navigasi GPS
+        </button>
+        <button class="btn-outline" style="flex: 1;" onclick="showToast('Tambah ke itinerary segera hadir!')">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+          Tambah ke Itinerary
+        </button>
+      </div>
+    </div>
+
+    <!-- Sidebar Info Tambahan -->
+    <div class="detail-sidebar">
+      <div class="sidebar-card">
+        <div class="sidebar-card-title">Informasi Kontak</div>
+        <div class="sidebar-info-item">
+          <div class="sidebar-label">Telepon</div>
+          <div class="sidebar-value">(022) 123-4567</div>
+        </div>
+        <div class="sidebar-info-item">
+          <div class="sidebar-label">Email</div>
+          <div class="sidebar-value">info@tempat.com</div>
+        </div>
+        <div class="sidebar-info-item">
+          <div class="sidebar-label">Website</div>
+          <div class="sidebar-value"><a href="#" style="color: var(--secondary); text-decoration: none;">www.tempat.com</a></div>
+        </div>
+      </div>
+
+      <div class="sidebar-card">
+        <div class="sidebar-card-title">Jam Operasional</div>
+        <div class="sidebar-info-item">
+          <div class="sidebar-label">Senin - Jumat</div>
+          <div class="sidebar-value">08:00 - 17:00</div>
+        </div>
+        <div class="sidebar-info-item">
+          <div class="sidebar-label">Sabtu - Minggu</div>
+          <div class="sidebar-value">08:00 - 18:00</div>
+        </div>
+        <div class="sidebar-info-item">
+          <div class="sidebar-label">Hari Libur</div>
+          <div class="sidebar-value">Tutup</div>
+        </div>
+      </div>
+
+      <div class="sidebar-card">
+        <div class="sidebar-card-title">Tips Kunjungan</div>
+        <div class="sidebar-tips">
+          <div class="tip-item">💡 Datang pagi hari untuk menghindari keramaian</div>
+          <div class="tip-item">📸 Terbaik untuk foto saat golden hour</div>
+          <div class="tip-item">🎒 Bawa air minum dan sunscreen</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div class="toast" id="toast">
   <div class="toast-dot"></div>

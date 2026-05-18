@@ -125,6 +125,84 @@ let savedPlaces = [1, 3, 5, 8, 10];
 let nearbyMap = null;
 let currentGemCategory = 'all';
 
+// ===== PLACE DETAIL PAGE =====
+function showPlaceDetail(placeId) {
+  const place = places.find(p => p.id === placeId);
+  if (!place) {
+    showToast('Tempat tidak ditemukan');
+    return;
+  }
+  currentDetailPlace = place;
+  renderPlaceDetail();
+  showPage('detail');
+}
+
+function renderPlaceDetail() {
+  if (!currentDetailPlace) return;
+  
+  const place = currentDetailPlace;
+  const isSaved = savedPlaces.includes(place.id);
+  const g = gradients[place.id % gradients.length];
+  const bgStyle = place.image_url ? 
+    `background-image: url('${place.image_url}'); background-size: cover; background-position: center;` : 
+    `background: ${g};`;
+
+  // Update hero image
+  const heroEl = document.getElementById('detailHero');
+  if (heroEl) {
+    heroEl.style.cssText = bgStyle;
+  }
+
+  // Update title and meta
+  document.getElementById('detailTitle').textContent = place.name;
+  document.getElementById('detailRating').textContent = place.rating.toFixed(1);
+  document.getElementById('detailVisits').textContent = place.visits > 1000 ? (place.visits / 1000).toFixed(1) + 'K' : place.visits;
+  document.getElementById('detailBadge').textContent = place.badge;
+  document.getElementById('detailArea').textContent = place.area;
+  document.getElementById('detailCategory').textContent = place.cat;
+  
+  // Update price
+  const priceMap = {
+    'free': 'Gratis',
+    'cheap': '< Rp 50.000',
+    'mid': 'Rp 50.000 - 150.000',
+    'premium': '> Rp 150.000'
+  };
+  document.getElementById('detailPrice').textContent = priceMap[place.price] || place.price;
+  
+  // Update description
+  document.getElementById('detailDescription').textContent = place.desc;
+  
+  // Update save button
+  const saveBtn = document.getElementById('detailSaveBtn');
+  if (isSaved) {
+    saveBtn.classList.add('saved');
+    saveBtn.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="#C0F11C" stroke="#C0F11C" stroke-width="2"><path d="M19 21L12 16L5 21V5C5 4.46957 5.21071 3.96086 5.58579 3.58579C5.96086 3.21071 6.46957 3 7 3H17C17.5304 3 18.0391 3.21071 18.4142 3.58579C18.7893 3.96086 19 4.46957 19 5V21Z"/></svg>`;
+  } else {
+    saveBtn.classList.remove('saved');
+    saveBtn.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21L12 16L5 21V5C5 4.46957 5.21071 3.96086 5.58579 3.58579C5.96086 3.21071 6.46957 3 7 3H17C17.5304 3 18.0391 3.21071 18.4142 3.58579C18.7893 3.96086 19 4.46957 19 5V21Z"/></svg>`;
+  }
+}
+
+function toggleDetailSave() {
+  if (!currentDetailPlace) return;
+  
+  const placeId = currentDetailPlace.id;
+  const btn = document.getElementById('detailSaveBtn');
+  
+  if (savedPlaces.includes(placeId)) {
+    savedPlaces = savedPlaces.filter(x => x !== placeId);
+    showToast('Dihapus dari simpanan');
+    btn.classList.remove('saved');
+    btn.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21L12 16L5 21V5C5 4.46957 5.21071 3.96086 5.58579 3.58579C5.96086 3.21071 6.46957 3 7 3H17C17.5304 3 18.0391 3.21071 18.4142 3.58579C18.7893 3.96086 19 4.46957 19 5V21Z"/></svg>`;
+  } else {
+    savedPlaces.push(placeId);
+    showToast('Disimpan! ❤️');
+    btn.classList.add('saved');
+    btn.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="#C0F11C" stroke="#C0F11C" stroke-width="2"><path d="M19 21L12 16L5 21V5C5 4.46957 5.21071 3.96086 5.58579 3.58579C5.96086 3.21071 6.46957 3 7 3H17C17.5304 3 18.0391 3.21071 18.4142 3.58579C18.7893 3.96086 19 4.46957 19 5V21Z"/></svg>`;
+  }
+}
+
 // ===== HIDDEN GEM DATA =====
 const hiddenGems = [
   { id:101, name:"Curug Dago", area:"Dago", cat:"Alam", rating:4.8, visitors:320, badge:"Air Terjun", desc:"Air terjun tersembunyi di balik pepohonan Dago yang rindang, suasana tenang jauh dari keramaian.", tips:"Datang pagi hari sebelum jam 8 untuk menikmati kabut pagi yang magis.", discovered:128 },
@@ -151,7 +229,11 @@ const pageBgMap = {
   itinerary: 'bg-itinerary',
   profile:   'bg-profile',
   hiddengem: 'bg-hiddengem',
+  detail:    'bg-search',
 };
+
+// Current detail place
+let currentDetailPlace = null;
 
 // ===== PAGE NAVIGATION =====
 async function showPage(pageId) {
@@ -209,7 +291,7 @@ function createPlaceCard(place, idx) {
     `background: ${g};`;
 
 return `
-    <div class="place-card" onclick="showToast('Membuka ${place.name}...')">
+    <div class="place-card" onclick="showPlaceDetail(${place.id})">
       <div class="place-img">
         <div class="place-img-bg" style="${bgStyle}"></div>
         <div class="place-badge">${place.badge}</div>
