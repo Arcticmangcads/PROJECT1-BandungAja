@@ -64,20 +64,22 @@ class UserLogin(BaseModel):
     password : str
 
 class UserResponse(BaseModel):
-    id     : int
-    nama   : Optional[str]
-    email  : str
-    foto   : Optional[str] = None
-    lokasi : Optional[str] = None
-    role   : Optional[str] = "user"
+    id            : int
+    nama_depan    : Optional[str] = None
+    nama_belakang : Optional[str] = None
+    email         : str
+    image_url     : Optional[str] = None
+    lokasi        : Optional[str] = None
+    role          : Optional[str] = "user"
 
     class Config:
         from_attributes = True
 
 class UserUpdate(BaseModel):
-    nama   : Optional[str] = None
-    foto   : Optional[str] = None
-    lokasi : Optional[str] = None
+    nama_depan    : Optional[str] = None
+    nama_belakang : Optional[str] = None
+    image_url     : Optional[str] = None
+    lokasi        : Optional[str] = None
 
 class TokenResponse(BaseModel):
     access_token : str
