@@ -1,0 +1,3 @@
+nama,kategori,alamat,rating,harga_min,harga_max,sumber,deskripsi,jam_buka,jam_tutup,latitude,longitude,jumlah_review
+Dago Dreampark,wisata,Jl. Dago Giri Km 2.2 Lembang,4.3,50000,50000,dummy_csv,Taman wisata dengan pemandangan Kota Bandung.,08.00,21.00,-6.8350,107.6210,60
+Paris Van Java,wisata,Jl. Sukajadi No.131 Bandung,4.5,0,0,dummy_csv,Mall premium dengan konsep outdoor yang ikonik.,10.00,22.00,-6.8864,107.5951,2800
