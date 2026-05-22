@@ -133,7 +133,7 @@ def import_csv(
         for sep in [';', ',', '\t']:
                 try:
                         # Deteksi otomatis pemisah (koma/titik koma)
-                        test_df = pd.read_csv(io.StringIO(csv_str), sep=None, engine='python', dtype={
+                        test_df = pd.read_csv(io.StringIO(csv_str), sep=sep, engine='python', dtype={
                                 "jam_buka": str,
                                 "jam_tutup": str
                         })
@@ -149,7 +149,7 @@ def import_csv(
         if df is None:
                 try:
                 # Biarkan pandas auto-detect
-                        df = pd.read_csv(io.StringIO(csv_str), sep=None, engine='python', dtype={
+                        df = pd.read_csv(io.StringIO(csv_str), sep=sep, engine='python', dtype={
                                 "jam_buka": str,
                                 "jam_tutup": str
                         })
