@@ -7,6 +7,7 @@ from routers.auth import require_developer
 from typing import Optional, List
 from database import get_db
 
+import requests
 import models, schemas
 import pandas as pd
 import io
@@ -115,7 +116,7 @@ def import_csv(
         file: UploadFile = File(...),
         db: Session = Depends(get_db),
         current_user : models.User = Depends(require_developer)
-):
+):        
         # Validasi eksistensi file
         if not file.filename.lower().endswith(".csv"):
                 raise HTTPException(status_code=400, detail="File harus berformat CSV")
@@ -123,14 +124,19 @@ def import_csv(
         # Baca isi file CSV
         contents = file.file.read()
         try:
-                csv_str = contents.decode("utf-8-sig")
+                csv_str = contents.decode("utf-8-sig")  # Jika dari Office
         except UnicodeDecodeError:
-                raise HTTPException(status_code=400, detail="Encoding file harus UTF-8")
+                csv_str = contents.decode("latin-1")    # Jika dari LibreOffice
+                # raise HTTPException(status_code=400, detail="Encoding file harus UTF-8")
+
         try:
-                df = pd.read_csv(io.BytesIO(contents), dtype = {
-                        "jam_buka"  : str,
-                        "jam_tutup" : str
+                # Deteksi otomatis pemisah (koma/titik koma)
+                df = pd.read_csv(io.StringIO(csv_str), sep=None, engine='python', dtype={
+                        "jam_buka": str,
+                        "jam_tutup": str
                 })
+                df.columns = df.columns.str.replace('\xa0', ' ', regex=False).str.strip().str.lower()
+                
         except Exception as e:
                 raise HTTPException(status_code=400, detail=f"Gagal membaca CSV: {str(e)}")
                 
@@ -146,28 +152,51 @@ def import_csv(
         # Normalisasi nama kolom (strip spasi, lowercase), berguna saat ada spasi ekstra
         df.columns = df.columns.str.strip()
 
+        # Helper function perlu didefinisikan sebelum loop
+        def save_str(val):
+                if val is None:
+                        return None
+                if isiinstance(val, float) and pd.isna(val):
+                        return None
+                result = str(val).strip()
+                if result == "" or result.lower() == "nan":
+                        return None
+                return result
+
+        
+        def save_float(val):
+                if val is None or (isinstance(val, float) and pd.isna(val)):
+                        return None
+                if str(val).strip() == "":
+                        return None
+                try:
+                        return float(val)
+                except (ValueError, TypeError):
+                        return None
+                        
+        def save_int(val):
+                if pd.isna(val) or (isinstance(val, float) and pd.isna(val)):
+                        return None
+                if str(val).strip() == "":
+                        return None
+                try:
+                        return float(val)
+                except (ValueError, TypeError):
+                        return None
+                
         # Masukan ke database baris per baris
         berhasil = 0
         gagal = 0
         errors = [] # mencatat detail error
         
         for idx, row in df.iterrows():
+                if pd.isna(row.get("nama")) or str(row.get("nama")).strip() == "":
+                        continue
                 try:
-                        # Fungsi bantu konversi aman
-                        def save_float(val):
-                                if pd.isna(val) or str(val).strip() == "":
-                                        return None
-                                return float(val)
-                        
-                        def save_int(val):
-                                if pd.isna(val) or str(val).strip() == "":
-                                        return None
-                                return int(float(val)) # jika angaka desimal "(4.6)"
-                        
                         tempat = models.Tempat(
                                 nama          = row.get("nama").strip(),
                                 kategori      = row.get("kategori"),
-                                deskripsi     = row.get("deskripsi"),
+                                deskripsi     = save_str(row.get("deksripsi")),
                                 alamat        = row.get("alamat"),
                                 rating        = save_float(row.get("rating")),
                                 harga_min     = save_int(row.get("harga_min")),
@@ -189,6 +218,7 @@ def import_csv(
                 db.commit()
 
         return {
+                "kolom_dibaca" : list(df.columns),
                 "message"      : "Import selesai",
                 "berhasil"     : berhasil,
                 "gagal"        : gagal,
@@ -253,3 +283,16 @@ def hitung_jarak(lat1, lon1, lat2, lon2):
         a = sin(dlat/2)**2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon/2)**2
         c = 2 * atan2(sqrt(a), sqrt(1 - a))
         return R * c # Jarak dalam kilometer
+
+@router.get("/nearby-auto")
+def nearby_auto(radius: float = 5, db: Session = Depends(get_db)):
+    # Auto detect user location
+    try:
+        res = requests.get('http://ip-api.com/json/', timeout=5)
+        data = res.json()
+        user_lat = data['lat']
+        user_lon = data['lon']
+    except:
+        # Default Bandung
+        user_lat = -6.914744
+        user_lon = 107.609810
