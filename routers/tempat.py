@@ -129,7 +129,7 @@ def import_csv(
                 raise HTTPException(status_code=400, detail="Encoding file harus UTF-8")
         try:
                 # Deteksi otomatis pemisah (koma/titik koma)
-                df = pd.read_csv(io.BytesIO(contents), sep=None, engine='python')
+                df = pd.read_csv(io.StringIO(csv_str), sep=None, engine='python')
                 df.columns = df.columns.str.strip().str.lower()
                 
         except Exception as e:
