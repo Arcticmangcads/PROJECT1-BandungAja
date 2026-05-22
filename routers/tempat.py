@@ -127,18 +127,35 @@ def import_csv(
                 csv_str = contents.decode("utf-8-sig")  # Jika dari Office
         except UnicodeDecodeError:
                 csv_str = contents.decode("latin-1")    # Jika dari LibreOffice
-                # raise HTTPException(status_code=400, detail="Encoding file harus UTF-8")
 
-        try:
-                # Deteksi otomatis pemisah (koma/titik koma)
-                df = pd.read_csv(io.StringIO(csv_str), sep=None, engine='python', dtype={
-                        "jam_buka": str,
-                        "jam_tutup": str
-                })
-                df.columns = df.columns.str.replace('\xa0', ' ', regex=False).str.strip().str.lower()
-                
-        except Exception as e:
-                raise HTTPException(status_code=400, detail=f"Gagal membaca CSV: {str(e)}")
+        # Coba semua separator CSV 
+        df = None
+        for sep in [';', ',', '\t']:
+                try:
+                        # Deteksi otomatis pemisah (koma/titik koma)
+                        test_df = pd.read_csv(io.StringIO(csv_str), sep=None, engine='python', dtype={
+                                "jam_buka": str,
+                                "jam_tutup": str
+                        })
+
+                        # Validasi dengan minimal 2 kolom & kolom "nama" harus ada
+                        test_df.columns = test_df.columns.str.replace('\xa0', ' ', regex=False).str.strip().str.lower()
+                        if len(test_df.columns) >= 2 and "nama" in test_df.columns:
+                                df = test_df
+                                break
+                except Exception:
+                        continue
+
+        if df is None:
+                try:
+                # Biarkan pandas auto-detect
+                        df = pd.read_csv(io.StringIO(csv_str), sep=None, engine='python', dtype={
+                                "jam_buka": str,
+                                "jam_tutup": str
+                        })
+                        df.columns = df.columns.str.replace('\xa0', ' ', regex=False).str.strip().str.lower()
+                except Exception as e:
+                        raise HTTPException(status_code=400, detail=f"Gagal membaca CSV: {str(e)}")
                 
         # Kolom yang diharapkan ada di CSV
         kolom_wajib = ["nama"]
@@ -149,14 +166,11 @@ def import_csv(
                                 detail=f"Kolom wajib '{kolom}' tidak ditemukan di CSV. Kolom tersedia: {list(df.columns)}"
                               )
 
-        # Normalisasi nama kolom (strip spasi, lowercase), berguna saat ada spasi ekstra
-        df.columns = df.columns.str.strip()
-
         # Helper function perlu didefinisikan sebelum loop
         def save_str(val):
                 if val is None:
                         return None
-                if isiinstance(val, float) and pd.isna(val):
+                if isinstance(val, float) and pd.isna(val):
                         return None
                 result = str(val).strip()
                 if result == "" or result.lower() == "nan":
@@ -196,7 +210,7 @@ def import_csv(
                         tempat = models.Tempat(
                                 nama          = row.get("nama").strip(),
                                 kategori      = row.get("kategori"),
-                                deskripsi     = save_str(row.get("deksripsi")),
+                                deskripsi     = save_str(row.get("deskripsi")),
                                 alamat        = row.get("alamat"),
                                 rating        = save_float(row.get("rating")),
                                 harga_min     = save_int(row.get("harga_min")),
