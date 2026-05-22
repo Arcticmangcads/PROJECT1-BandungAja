@@ -28,6 +28,7 @@ def create_token(data: dict) -> str:
 def decode_token(token: str) -> dict:
     try:
         return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-    except JWTError:
-        print("SECRET_KEY bermasalah!")
+    except JWTError as e:
+        import logging
+        logging.warning(f"JWT decode gagal: {e}")
         return None

@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from routers.auth import require_developer
 from sqlalchemy.orm import Session
 from database import get_db
 from typing import Optional
@@ -20,9 +21,10 @@ VALID_STATUS = [
 # POST untuk set status tempat
 @router.post("/{tempat_id}", response_model=schemas.StatusTempatResponse)
 def set_status(
-    tempat_id : int,
-    data      : schemas.StatusTempatCreate,
-    db        : Session = Depends(get_db)
+    tempat_id    : int,
+    data         : schemas.StatusTempatCreate,
+    db           : Session     = Depends(get_db),
+    current_user : models.User = Depends(require_developer)
 ):
     tempat = db.query(models.Tempat).filter(models.Tempat.id == tempat_id).first()
     if not tempat:

@@ -10,6 +10,8 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib import colors
+from pydantic import Field
+from typing import Optional
 from io import BytesIO
 import models, schemas
 
@@ -66,9 +68,16 @@ def get_detail_itinerary(
         .order_by(models.ItineraryItem.hari, models.ItineraryItem.urutan)\
         .all()
 
+    # Mengambil semua tempat sekaligus untuk menghindari N+1 query
+    tempat_ids = list(set(item.tempat_id for item in items))
+    tempat_dict = {
+        t.id: t for t in db.query(models.tempat)
+        .filter(models.Tempat.id.in_(tempat_ids)).all()
+    }
+
     jadwal = {}
     for item in item:
-        tempat = db.query(models.Tempat).filter(models.Tempat.id == item.tempat_id).first()
+        tempat = tempat_dict.get(item.tempat_id)
         hari_key = f"Hari {item.hari}"
         if hari_key not in jadwal:
             jadwal[hari_key] = []
@@ -85,7 +94,21 @@ def get_detail_itinerary(
                 "rating"   : tempat.rating
             } if tempat else None 
         })
+    if not items:
+        raise HTTPException(status_code="404", detail="Itinerary ini belum memiliki tempat")
 
+    tempat_ids = list(set(item.tempat_id for item in items))
+    tempat_dict = {
+        t.id: t for t in db.query(models.tempat)
+        .filter(models.Tempat.id.in_(tempat_ids)).all()
+    }
+
+    data = [["No", "Nama Tempat", "Jam", "Rating", "Catatan"]]
+    for idx, item in enumerate(items, 1):
+        tempat = tempat_dict.get(item.tempat_id)
+        nama_tempat = tempat.nama if tempat else "Tidak diketahui"
+        rating = f"★ {tempat.rating}" if tempat and tempat.rating else "-"
+    
     return {
         "id"         : itinerary.id,
         "judul"      : itinerary.judul,
@@ -97,12 +120,12 @@ def get_detail_itinerary(
 # POST untuk menambah tempat ke itinerary pada hari tertentu
 @router.post("/{itinerary_id}/item")
 def tambah_item(
-    itinerary_id : int,
-    tempat_id    : int,
-    hari         : int,
-    urutan       : int,
-    jam          : str = None,
-    catatan      : str = None,
+    itinerary_id : int = Field(..., gt = 0),
+    tempat_id    : int = Field(..., gt = 0),
+    hari         : int = Field(..., gt = 0),
+    urutan       : int = Field(..., gt = 0),
+    jam          : Optional[str] = None,
+    catatan      : Optional[str] = None,
     db           : Session = Depends(get_db),
     current_user : models.User = Depends(get_current_user)
 ):

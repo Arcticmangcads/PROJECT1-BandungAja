@@ -99,6 +99,13 @@ class UserUpdate(BaseModel):
     image_url     : Optional[str] = None
     lokasi        : Optional[str] = None
 
+    @field_validator('image_url')
+    @classmethod
+    def validate_image_url(cls, v):
+        if v is not None and v.strip() != "" and not v.startswith(("http://", "https://")):
+            raise HTTPException("image_url harus dimulai dengan http:// atau https://")
+        return v
+
 class TokenResponse(BaseModel):
     access_token : str
     token_type   : str
