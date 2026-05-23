@@ -21,7 +21,11 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://127.0.0.1:5500/frontend/index.html"],    # Diganti menjadi URL frontend saat deployment http://127.0.0.1:5500/frontend
+    allow_origins=[
+        "http://127.0.0.1:5500",    # Live Server (VS Code)
+        "http://localhost:5500",    # Alternatif localhost
+        "http://127.0.0.1:8000",    # Jika frontend dilayani dari FastAPI
+    ],
     allow_methods=["*"],
     allow_headers=["*"],
     )
