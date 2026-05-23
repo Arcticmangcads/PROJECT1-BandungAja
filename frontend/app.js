@@ -553,16 +553,6 @@ async function loadItineraryDetail(itineraryId) {
   }
 }
 
-function createItinerary() {
-  const name = document.getElementById('itinName')?.value || document.getElementById('modalItinName')?.value || 'Itinerary Baru';
-  const date = document.getElementById('itinDate')?.value || new Date().toISOString().split('T')[0];
-  const dur = document.getElementById('itinDuration')?.value || '1 Hari';
-  if (!name.trim()) { showToast('Masukkan nama itinerary dulu!'); return; }
-  itineraries.unshift({ id:Date.now(), name, date, duration:dur, stops:[] });
-  renderItineraries();
-  showToast('Itinerary berhasil dibuat! 🎉');
-}
-
 // ===== TOP 10 =====
 async function renderTop10() {
   try {
@@ -1068,7 +1058,7 @@ async function exportItineraryToPDF(itineraryId) {
     });
 
     if(!response.ok) {
-      throw new Error('Gagal mengekspor PDF');
+      const errData = await response.json().catch(() => null);
       throw new Error(errData?.detail || 'Gagal mengekspor PDF');
     }
 
@@ -1166,9 +1156,8 @@ async function addItemToItinerary(itineraryId, tempatId, hari, urutan, jam = nul
     if (jam) url += `&jam=${encodeURIComponent(jam)}`;
     if (catatan) url += `&catatan=${encodeURIComponent(catatan)}`;
 
-    const response = await authorizedFetch(`/itinerary/${itineraryId}/item`, {
-      method: 'POST',
-      body: JSON.stringify({ tempat_Id: tempatId, hari, urutan, jam, catatan })
+    const response = await authorizedFetch(url, {
+      method: 'POST'
     });
 
     if(!response) {
@@ -1228,7 +1217,7 @@ async function deleteItineraryItem(itinereryId, itemId) {
       // Refresh itinerary detail
       const detail = await getItineraryDetail(itinereryId);
       if (detail && typeof renderItineraryDetail === 'function') {
-        renderItineraryDetail(detail);
+        loadItineraryDetail(detail);
       }
     }
   } catch (error) {
