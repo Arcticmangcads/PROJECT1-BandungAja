@@ -66,6 +66,8 @@ async function fetchPlaceFromBackend() {
 
      console.log("Data tempat berhasil diperbarui dari Supabase!");
 
+     if (typeof updateHeroStats === "function") updateHeroStats();
+
      // Menggunakan fungsi render bawaan di app.js untuk update data baru
      if (typeof filterPlaces === "function") filterPlaces();
      if (typeof renderTop10 === "function") renderTop10();
@@ -127,7 +129,18 @@ let currentGemCategory = 'all';
 
 // ===== HIDDEN GEM DATA =====
 const hiddenGems = [
-  { id:101, name:"Curug Dago", area:"Dago", cat:"Alam", rating:4.8, visitors:320, badge:"Air Terjun", desc:"Air terjun tersembunyi di balik pepohonan Dago yang rindang, suasana tenang jauh dari keramaian.", tips:"Datang pagi hari sebelum jam 8 untuk menikmati kabut pagi yang magis.", discovered:128 },
+  { id:101, 
+    name:"Curug Dago", 
+    area:"Dago", 
+    cat:"Alam", 
+    rating:4.8, 
+    visitors:320, 
+    badge:"Air Terjun", 
+    desc:"Air terjun tersembunyi di balik pepohonan Dago yang rindang, suasana tenang jauh dari keramaian.", 
+    tips:"Datang pagi hari sebelum jam 8 untuk menikmati kabut pagi yang magis.", 
+    discovered:128,
+    image_url: "https://www.pesisir.net/wp-content/uploads/2022/06/Aktivitas-Curug-Dago.webp" 
+  },
   { id:102, name:"Gang Bapa Soewirja", area:"Braga", cat:"Seni", rating:4.6, visitors:210, badge:"Street Art", desc:"Gang sempit bersejarah di kawasan Braga yang dipenuhi mural seniman lokal Bandung.", tips:"Paling indah difoto saat golden hour sekitar jam 5-6 sore.", discovered:89 },
   { id:103, name:"Warung Nasi Ema", area:"Cicendo", cat:"Kuliner", rating:4.9, visitors:150, badge:"Warisan", desc:"Warung nasi pecel legendaris sejak 1978 yang hanya buka sampai jam 10 pagi, langganan warga asli Bandung.", tips:"Antri sebelum jam 7 pagi atau kehabisan!", discovered:312 },
   { id:104, name:"Gedong Cai Cibeunying", area:"Dago", cat:"Wisata", rating:4.5, visitors:280, badge:"Bersejarah", desc:"Bangunan reservoir air kolonial Belanda yang tersembunyi di tengah kota, arsitektur indah yang jarang diketahui.", tips:"Izin kunjungan bisa diminta di kantor PDAM setempat.", discovered:67 },
@@ -313,57 +326,70 @@ function doHeroSearch() {
 }
 
 // ===== NEARBY MAP =====
-function initNearbyMap() {
+async function initNearbyMap() {
   if (nearbyMap) return;
   
-  setTimeout(() => {
-    try {
-      nearbyMap = L.map('nearby-map').setView([-6.9175, 107.6191], 13);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '©OpenStreetMap ©Carto', maxZoom:19
-      }).addTo(nearbyMap);
-      
-      // Bandung places with coords
-      const bandungPlaces = [
-        { name:"Gedung Merdeka", lat:-6.9197, lng:107.6060, cat:"Wisata", rating:4.8 },
-        { name:"Museum Geologi", lat:-6.9054, lng:107.6107, cat:"Museum", rating:4.6 },
-        { name:"Dusun Bambu", lat:-6.8193, lng:107.5691, cat:"Hiburan", rating:4.7 },
-        { name:"Trans Studio Bandung", lat:-6.9340, lng:107.6410, cat:"Theme Park", rating:4.5 },
-        { name:"Saung Angklung Udjo", lat:-6.9109, lng:107.6620, cat:"Budaya", rating:4.8 },
-        { name:"Cihampelas Walk", lat:-6.8878, lng:107.5972, cat:"Belanja", rating:4.3 },
-        { name:"Braga City Walk", lat:-6.9147, lng:107.6089, cat:"Kuliner", rating:4.4 },
-        { name:"Tebing Keraton", lat:-6.8534, lng:107.6454, cat:"Alam", rating:4.5 },
-      ];
-      
-      const customIcon = L.divIcon({
-        html: `<div style="width:12px;height:12px;background:#C0F11C;border-radius:50%;border:2px solid #004AAD;box-shadow:0 0 8px rgba(192,241,28,0.6)"></div>`,
-        className:'', iconSize:[12,12]
-      });
-      
-      bandungPlaces.forEach(p => {
-        L.marker([p.lat, p.lng], {icon:customIcon})
-          .bindPopup(`<b style="color:#004AAD">${p.name}</b><br><small>${p.cat} · ★${p.rating}</small>`)
-          .addTo(nearbyMap);
-      });
-      
-      // Render list
-      const list = document.getElementById('nearbyList');
-      list.innerHTML = bandungPlaces.map((p,i) => `
+  try {
+    // 1. Ambil data dari backend (Contoh: Pusat Bandung)
+    const response = await fetch(`${API_URL}/tempat/nearby?lat=-6.9175&lon=107.6191&radius=5`);
+    const backendData = await response.json();
+
+    // 2. Petakan data agar sesuai dengan variabel UI Anda (name, cat, lat, lng)
+    const bandungPlaces = backendData.map(item => ({
+      name: item.nama,
+      cat: item.kategori,
+      lat: item.latitude,
+      lng: item.longitude,
+      rating: item.rating,
+      image_url: item.image_url,
+      dist: item.jarak_km || 0
+    }));
+
+    // 3. Inisialisasi Map (Gunakan kode asli Anda)
+    nearbyMap = L.map('nearby-map').setView([-6.9175, 107.6191], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '©OpenStreetMap'
+    } ).addTo(nearbyMap);
+
+    const customIcon = L.divIcon({
+      html: `<div style="width:12px;height:12px;background:#C0F11C;border-radius:50%;border:2px solid #004AAD;box-shadow:0 0 8px rgba(192,241,28,0.6)"></div>`,
+      className:'', iconSize:[12,12]
+    });
+
+    // 4. Render Marker & List (Gunakan struktur HTML asli Anda)
+    const list = document.getElementById('nearbyList');
+    list.innerHTML = bandungPlaces.map((p, i) => {
+      // Tambah Marker
+      L.marker([p.lat, p.lng], {icon:customIcon})
+        .bindPopup(`<b style="color:#004AAD">${p.name}</b>  
+<small>${p.cat} · ★${p.rating}</small>`)
+        .addTo(nearbyMap);
+
+      // Logika Gambar (Tetap di dalam style asli)
+      const nearbyBg = p.image_url ? 
+        `background-image: url('${p.image_url}'); background-size: cover; background-position: center;` : 
+        `background: ${gradients[i % gradients.length]};`;
+
+      // HTML SAMA PERSIS DENGAN ASLINYA
+      return `
         <div class="nearby-item ${i===0?'active':''}" onclick="nearbyMap.setView([${p.lat},${p.lng}],15);document.querySelectorAll('.nearby-item').forEach(x=>x.classList.remove('active'));this.classList.add('active')">
-          <div class="nearby-item-img" style="background:${gradients[i%gradients.length]}"></div>
+          <div class="nearby-item-img" style="${nearbyBg}"></div>
           <div class="nearby-item-info">
             <div class="nearby-item-name">${p.name}</div>
             <div class="nearby-item-cat">${p.cat}</div>
             <div class="nearby-item-dist">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#C0F11C"/></svg>
-              ${(Math.random()*3+0.5).toFixed(1)} km · ★${p.rating}
+              ${p.dist.toFixed(1)} km · ★${p.rating}
             </div>
           </div>
         </div>
-      `).join('');
-    } catch(e) { console.error('Map error:', e); }
-  }, 300);
+      `;
+    }).join('');
+  } catch(e) {
+    console.error('Map error:', e); 
+  }
 }
+
 
 // ===== SAVED =====
 function setSavedTab(btn, tab) {
@@ -429,13 +455,63 @@ function createItinerary() {
 }
 
 // ===== TOP 10 =====
-function renderTop10() {
-  const sorted = [...places].sort((a,b) => b.visits - a.visits).slice(0, 10);
-  const rankClass = i => i===0?'gold':i===1?'silver':i===2?'bronze':'';
-  document.getElementById('top10Grid').innerHTML = sorted.map((p,i) => `
+async function renderTop10() {
+  try {
+    const response = await fetch(`${API_URL}/tempat?sort_by=rating&limit=10`);
+    const dataTop10 = await response.json();
+
+    const sorted = dataTop10.map(item => ({
+      id: item.id,
+      name: item.nama,
+      area: item.alamat ? item.alamat.split(',')[0] : "Bandung",
+      cat: item.kategori ? item.kategori.charAt(0).toUpperCase() + item.kategori.slice(1) : "Wisata",
+      rating: item.rating || 0.0,
+      visits: item.jumlah_review || 0,
+      badge: item.rating >= 4.5 ? "Ikonik" : "Trending",
+      desc: item.deskripsi || "Tidak ada deskripsi",
+      image_url: item.image_url ?
+        (item.image_url.startsWith('http') ?
+          item.image_url :
+            `http://127.0.0.1:8000/static/${image_url}`) :
+        null
+    }));
+
+    const rankClass = i => i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+    document.getElementById('top10Grid').innerHTML = sorted.map((p, i) => `
+      <div class="top-item" onclick="showToast('Membuka ${p.name}...')">
+        <div class="top-rank ${rankClass(i)}">#${i+1}</div>
+        <div class="top-item-img" style="background:${gradients[i%gradients.length]}"></div>
+        <div class="top-item-info">
+          <div class="top-item-name">${p.name}</div>
+          <div style="font-size:13px;color:var(--text-muted);margin:4px 0">${p.desc}</div>
+          <div class="top-item-tags">
+            <span class="top-item-tag">${p.cat}</span>
+            <span class="top-item-tag">📍 ${p.area}</span>
+          </div>
+        </div>
+        <div class="top-item-score">
+          ★ ${p.rating}
+          <span>${(p.visits/1000).toFixed(1)}k kunjungan</span>
+        </div>
+      </div>
+    `).join('');
+  } catch (error) {
+    console.warn("Gagal fetch top 10 dari API, menggunakna data lokal:", error.message);
+    // Fallback ke data lokal
+    const top10 = [...places].sort((a,b) => b.rating - a.rating).slice(0, 10);
+    const rankClass = i => i===0?'gold':i===1?'silver':i===2?'bronze':'';
+    document.getElementById('top10Grid').innerHTML = top10.map((p, i) => {
+  
+  if (!grid) return;
+  // Logika Gambar: Gunakan image_url jika ada, jika tidak pakai gradien
+  const topBg = p.image_url ? 
+    `background-image: url('${p.image_url}'); background-size: cover; background-position: center;` : 
+      `background: ${gradients[i % gradients.length]};`;
+
+  return `
     <div class="top-item" onclick="showToast('Membuka ${p.name}...')">
       <div class="top-rank ${rankClass(i)}">#${i+1}</div>
-      <div class="top-item-img" style="background:${gradients[i%gradients.length]}"></div>
+      <div class="top-item-img" style="${topBg}"></div>
       <div class="top-item-info">
         <div class="top-item-name">${p.name}</div>
         <div style="font-size:13px;color:var(--text-muted);margin:4px 0">${p.desc}</div>
@@ -449,7 +525,8 @@ function renderTop10() {
         <span>${(p.visits/1000).toFixed(1)}k kunjungan</span>
       </div>
     </div>
-  `).join('');
+  `}).join('');
+  }
 }
 
 // ===== PROFILE =====
@@ -646,9 +723,15 @@ function renderHiddenGem() {
 
   const catIcons = { Alam:'🌿', Kuliner:'🍜', Café:'☕', Wisata:'🏛️', Seni:'🎨' };
 
-  document.getElementById('gemGrid').innerHTML = filtered.map((gem, i) => `
+  document.getElementById('gemGrid').innerHTML = filtered.map((gem, i) => {
+  // Logika Gambar: Gunakan image_url jika ada, jika tidak pakai gradien warna
+  const gemBg = gem.image_url ? 
+    `background-image: url('${gem.image_url}'); background-size: cover; background-position: center;` : 
+    `background: ${priceGradients[i % priceGradients.length]};`;
+
+  return `
     <div class="gem-card" onclick="showGemDetail(${gem.id})">
-      <div class="gem-card-img" style="background:https://www.pesisir.net/wp-content/uploads/2022/06/Aktivitas-Curug-Dago.webp">
+      <div class="gem-card-img" style="${gemBg}">
         <div class="gem-card-badge">${gem.badge}</div>
         <div class="gem-card-secret">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 8L12 22L22 8L12 2Z" fill="#C0F11C" opacity="0.9"/></svg>
@@ -664,7 +747,7 @@ function renderHiddenGem() {
         </div>
         <div class="gem-card-meta">
           <span class="gem-card-area">📍 ${gem.area}</span>
-          <span class="gem-card-vis">👤 &lt;${gem.visitors > 500 ? '1rb' : gem.visitors} pengunjung</span>
+          <span class="gem-card-vis">👤 <${gem.visitors > 500 ? '1rb' : gem.visitors} pengunjung</span>
         </div>
         <p class="gem-card-desc">${gem.desc}</p>
         <div class="gem-tips-box">
@@ -673,12 +756,14 @@ function renderHiddenGem() {
         </div>
       </div>
     </div>
-  `).join('') || `
-    <div style="grid-column:1/-1;text-align:center;padding:80px 20px;color:var(--text-muted)">
-      <div style="font-size:48px;margin-bottom:16px">💎</div>
-      <div style="font-size:18px;font-weight:700;margin-bottom:8px">Belum ada Hidden Gem di kategori ini</div>
-      <div style="font-size:14px">Coba kategori lain atau jelajahi semua!</div>
-    </div>`;
+  `;
+}).join('') || `
+  <div style="grid-column:1/-1;text-align:center;padding:80px 20px;color:var(--text-muted)">
+    <div style="font-size:48px;margin-bottom:16px">💎</div>
+    <div style="font-size:18px;font-weight:700;margin-bottom:8px">Belum ada Hidden Gem di kategori ini</div>
+    <div style="font-size:14px">Coba kategori lain atau jelajahi semua!</div>
+  </div>
+`;
 }
 
 function showGemDetail(id) {
@@ -1086,14 +1171,13 @@ async function getHiddenGem(minRating = 4.0, maxReview = 100) {
 async function getNearby(lat, lon, radius = 5) {
   try {
     const response = await fetch(`${API_URL}/tempat/nearby?lat=${lat}&lon=${lon}&radius=${radius}`);
-
+    
     if(!response.ok) {
       throw new Error('Gagal memuat tempat terdekat');
-      return await response.json();
     }
+    return await response.json();
   } catch (error) {
     console.error(error);
-    showToast('Gagal memuat tempat terdekat');
     return [];
   }
 }
@@ -1114,6 +1198,22 @@ async function getStatusTempat(tempatId) {
   }
 }
 
+function updateHeroStats() {
+  // Hitung total destinasi
+  const totalDestinasi = places.length;
+  
+  // Hitung kuliner (berdasarkan kategori dari backend)
+  const totalKuliner = places.filter(p => p.cat.toLowerCase() === 'kuliner').length;
+  
+  // Hitung wisata (berdasarkan kategori dari backend)
+  const totalWisata = places.filter(p => p.cat.toLowerCase() === 'wisata').length;
+
+  // Update ke UI
+  document.getElementById('stat-destinasi').innerText = `${totalDestinasi}+`;
+  document.getElementById('stat-kuliner').innerText = `${totalKuliner}+`;
+  document.getElementById('stat-wisata').innerText = `${totalWisata}+`;
+}
+
 // Export fungsi ke objek global window untuk dipanggil langsung dari HTML
 window.loginUser = loginUser;
 window.logoutUser = logoutUser;
@@ -1130,10 +1230,12 @@ window.removeFromWhislist = removeFromWhislist;
 window.getHiddenGem = getHiddenGem;
 window.getNearby = getNearby;
 window.getStatusTempat = getStatusTempat;
+window.updateHeroStats = updateHeroStats;
 
 document.addEventListener('DOMContentLoaded', () => {
   fetchPlaceFromBackend();
   syncWishlist();
+  updateHeroStats();
   showPage('home');
 });
 
