@@ -472,7 +472,7 @@ async function renderTop10() {
       image_url: item.image_url ?
         (item.image_url.startsWith('http') ?
           item.image_url :
-            `http://127.0.0.1:8000/static/${image_url}`) :
+            `http://127.0.0.1:8000/static/${item.image_url}`) :
         null
     }));
 
@@ -502,7 +502,6 @@ async function renderTop10() {
     const rankClass = i => i===0?'gold':i===1?'silver':i===2?'bronze':'';
     document.getElementById('top10Grid').innerHTML = top10.map((p, i) => {
   
-  if (!grid) return;
   // Logika Gambar: Gunakan image_url jika ada, jika tidak pakai gradien
   const topBg = p.image_url ? 
     `background-image: url('${p.image_url}'); background-size: cover; background-position: center;` : 
