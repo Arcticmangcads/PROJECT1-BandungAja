@@ -86,7 +86,7 @@ def update_profile(
         current_user.nama_depan = data.nama_depan      
     if data.nama_belakang is not None:                 
         current_user.nama_belakang = data.nama_belakang 
-    if data.foto is not None:
+    if data.image_url is not None:
         current_user.image_url = data.image_url
     if data.lokasi is not None:
         current_user.lokasi = data.lokasi

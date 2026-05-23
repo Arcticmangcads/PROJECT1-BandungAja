@@ -62,21 +62,30 @@ def get_detail_itinerary(
     if not itinerary:
         raise HTTPException(status_code=404, detail="Itenerary tidak ditemukan")
 
-    # Mengambil semua item dan menyusun hari
-    item = db.query(models.ItineraryItem)\
+    # Mengambil semua items dan menyusun hari
+    items = db.query(models.ItineraryItem)\
         .filter(models.ItineraryItem.itinerary_id == itinerary_id)\
         .order_by(models.ItineraryItem.hari, models.ItineraryItem.urutan)\
         .all()
 
+    if not items:
+        return {
+            "id"         : itinerary.id,
+            "judul"      : itinerary.judul,
+            "total_hari" : itinerary.total_hari,
+            "created_at" : itinerary.created_at,
+            "jadwal"     : {}
+        }
+
     # Mengambil semua tempat sekaligus untuk menghindari N+1 query
-    tempat_ids = list(set(item.tempat_id for item in items))
+    tempat_id = list(set(item.tempat_id for item in items))
     tempat_dict = {
-        t.id: t for t in db.query(models.tempat)
-        .filter(models.Tempat.id.in_(tempat_ids)).all()
+        t.id: t for t in db.query(models.Tempat)
+        .filter(models.Tempat.id.in_(tempat_id)).all()
     }
 
     jadwal = {}
-    for item in item:
+    for item in items:
         tempat = tempat_dict.get(item.tempat_id)
         hari_key = f"Hari {item.hari}"
         if hari_key not in jadwal:
@@ -94,20 +103,6 @@ def get_detail_itinerary(
                 "rating"   : tempat.rating
             } if tempat else None 
         })
-    if not items:
-        raise HTTPException(status_code="404", detail="Itinerary ini belum memiliki tempat")
-
-    tempat_ids = list(set(item.tempat_id for item in items))
-    tempat_dict = {
-        t.id: t for t in db.query(models.tempat)
-        .filter(models.Tempat.id.in_(tempat_ids)).all()
-    }
-
-    data = [["No", "Nama Tempat", "Jam", "Rating", "Catatan"]]
-    for idx, item in enumerate(items, 1):
-        tempat = tempat_dict.get(item.tempat_id)
-        nama_tempat = tempat.nama if tempat else "Tidak diketahui"
-        rating = f"★ {tempat.rating}" if tempat and tempat.rating else "-"
     
     return {
         "id"         : itinerary.id,
@@ -145,7 +140,7 @@ def tambah_item(
     # Periksa hari agar tidak melebihi total_hari
     if hari > itinerary.total_hari:
         raise HTTPException(
-            status_code=404,
+            status_code=400,
             detail=f"Hari {hari} melebihi total hari itinerary ({itinerary.total_hari} hari)"
         )
 
@@ -231,12 +226,18 @@ def export_itinerary_pdf(
     # Ambil item-item 
     items = db.query(models.ItineraryItem)\
         .filter(models.ItineraryItem.itinerary_id == itinerary_id)\
-        .order_by(models.ItineraryItem.urutan)\
+        .order_by(models.ItineraryItem.hari, models.ItineraryItem.urutan)\
         .all()
 
     if not items:
-        raise HTTPException(status_code=404, detail=f"Tidak ada tempat di hari {hari}")
+        raise HTTPException(status_code=404, detail=f"Tidak ada tempat pada hari {hari} di itinerary")
 
+    tempat_id = list(set(item.tempat_id for item in items))
+    tempat_dict = {
+        t.id: t for t in db.query(models.Tempat)
+        .filter(models.Tempat.id.in_(tempat_id)).all()
+    }
+    
     # Buat PDF
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4,
@@ -258,30 +259,33 @@ def export_itinerary_pdf(
         tempat = db.query(models.Tempat).filter(models.Tempat.id == item.tempat_id).first()
         nama_tempat = tempat.nama if tempat else "Tidak diketahui"
         rating = f"★ {tempat.rating}" if tempat and tempat.rating else "-"
+
         data.append([
-            str(idx),
+            str(len(data) - 0), # Nomor sesuai urutan
             Paragraph(nama_tempat, styles['Normal']),
             item.jam or "-",
             rating,
             Paragraph(item.catatan or "-", styles['Normal'])
         ])
-
-    table = Table(data, colWidths=[30, 260, 70, 60, 120])
-    # styling tabel
-    table_style = TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#004AAD")),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 10),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
-        ('TOPPADDING', (0, 0), (-1, 0), 8),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('FONTSIZE', (0, 1), (-1, -1), 9),
-        ('ALIGN', (3, 0), (3, -1), 'CENTER'),  # kolom Rating di tengah
-    ])
-    table.setStyle(table_style)
-    story.append(table)
+    next_item = items[isx] if idx < len(items) else None
+    if next_item is None or next_item.hari != current_hari:
+        
+        table = Table(data, colWidths=[30, 260, 70, 60, 120])
+        # styling tabel
+        table_style = TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#004AAD")),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+            ('TOPPADDING', (0, 0), (-1, 0), 8),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('FONTSIZE', (0, 1), (-1, -1), 9),
+            ('ALIGN', (3, 0), (3, -1), 'CENTER'),  # kolom Rating di tengah
+        ])
+        table.setStyle(table_style)
+        story.append(table)
 
     # --- Catatan Kaki ---
     story.append(Spacer(1, 30))

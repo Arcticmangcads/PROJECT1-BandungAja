@@ -1,3 +1,4 @@
+from fastapi import HTTPException
 from pydantic import BaseModel, field_validator
 from typing import Optional
 
@@ -54,14 +55,6 @@ class TempatUpdate(BaseModel):
     image_url     : Optional[str]   = None
 
 # === AUTH ===
-class userCreate (BaseModel):
-    nama_depan    : str
-    nama_belakang : Optional[str] = None
-    email         : str
-    password      : str
-    foto          : Optional[str] = None
-    lokasi        : Optional[str] = None
-
 class UserRegister(BaseModel):
     nama_depan    : Optional[str] = None
     nama_belakang : Optional[str] = None
