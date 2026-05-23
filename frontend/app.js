@@ -80,9 +80,9 @@ async function fetchPlaceFromBackend() {
   }
 }
 
-const itineraries = [
+let itineraries = [
   {
-    id:1, name:"Weekend Seru di Bandung", date:"2025-05-10", duration:"2 Hari", stops:[
+    id:1, name:"Weekend Seru di Bandung", date:"2025-05-10", total_hari:2, stops:[
       {name:"Gedung Merdeka", time:"08:00"},
       {name:"Museum Geologi", time:"10:30"},
       {name:"Braga City Walk", time:"12:30"},
@@ -90,14 +90,14 @@ const itineraries = [
     ]
   },
   {
-    id:2, name:"Alam & Kuliner Lembang", date:"2025-05-17", duration:"1 Hari", stops:[
+    id:2, name:"Alam & Kuliner Lembang", date:"2025-05-17", total_hari:1, stops:[
       {name:"Dusun Bambu", time:"09:00"},
       {name:"Kawah Putih", time:"12:00"},
       {name:"Cafe Taman Langit", time:"16:00"},
     ]
   },
   {
-    id:3, name:"Wisata Budaya Bandung", date:"2025-05-24", duration:"1 Hari", stops:[
+    id:3, name:"Wisata Budaya Bandung", date:"2025-05-24", total_hari:1, stops:[
       {name:"Saung Angklung Udjo", time:"10:00"},
       {name:"Museum Geologi", time:"13:00"},
       {name:"Gedung Merdeka", time:"15:30"},
@@ -414,21 +414,68 @@ function renderSaved(tab='all') {
 }
 
 // ===== ITINERARIES =====
-function renderItineraries() {
+async function renderItineraries() {
   const list = document.getElementById('itinList');
+  if (!list) return;
+
+  const token = localStorage.getItem('token');
+
+  if (token) {
+    // Login → fetch dari backend
+    try {
+      const response = await authorizedFetch('/itinerary');
+      if (!response || !response.ok) {
+        throw new Error('Gagal memuat itinerary');
+      }
+
+      const data = await response.json();
+
+      if (data && data.length > 0) {
+        itineraries = data.map(itin => ({
+          id         : itin.id,
+          name       : itin.judul,
+          date       : itin.created_at ? itin.created_at.split(' ')[0] : '-',
+          total_hari : itin.total_hari,
+          stops      : []
+        }));
+      } else {
+        itineraries = [];
+      }
+    } catch (error) {
+      console.warn("Gagal fetch itinerary, menggunakan data dummy:", error.message);
+      // Tetap pakai dummy yang sudah ada di let itineraries
+    }
+  }
+  // else: logout → itineraries sudah berisi dummy, langsung render
+
+  // Render (baik dari backend maupun dummy)
+  if (itineraries.length === 0) {
+    list.innerHTML = `
+      <div class="glass-card" style="padding:24px;text-align:center">
+        <div style="font-size:14px;color:var(--text-muted)">Belum ada itinerary. Buat yang pertama!</div>
+      </div>`;
+    return;
+  }
+
   list.innerHTML = itineraries.map((itin, idx) => `
-    <div class="itin-plan-card ${idx===0?'active':''}" onclick="document.querySelectorAll('.itin-plan-card').forEach(c=>c.classList.remove('active'));this.classList.add('active')">
+    <div class="itin-plan-card ${idx===0?'active':''}" 
+         onclick="document.querySelectorAll('.itin-plan-card').forEach(c=>c.classList.remove('active'));this.classList.add('active');${token ? `loadItineraryDetail(${itin.id})` : ''}">
       <div class="itin-plan-header">
         <div>
           <div class="itin-plan-name">${itin.name}</div>
-          <div class="itin-plan-date">📅 ${itin.date} · ⏱ ${itin.duration}</div>
+          <div class="itin-plan-date">📅 ${itin.date} · ⏱ ${itin.total_hari} Hari</div>
         </div>
         <div style="display:flex;gap:8px;align-items:center">
           <div class="itin-plan-badge">${itin.stops.length} Stop</div>
-          <button onclick="event.stopPropagation();showToast('Mengekspor PDF...')" style="padding:6px 12px;border-radius:8px;background:rgba(192,241,28,0.1);border:1px solid rgba(192,241,28,0.3);color:var(--secondary);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer">Export PDF</button>
+          ${token ? `
+          <button onclick="event.stopPropagation();exportItineraryToPDF(${itin.id})" 
+                  style="padding:6px 12px;border-radius:8px;background:rgba(192,241,28,0.1);border:1px solid rgba(192,241,28,0.3);color:var(--secondary);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer">Export PDF</button>
+          <button onclick="event.stopPropagation();deleteItinerary(${itin.id})" 
+                  style="padding:6px 8px;border-radius:8px;background:rgba(255,80,80,0.1);border:1px solid rgba(255,80,80,0.3);color:#ff5050;font-family:inherit;font-size:12px;cursor:pointer">✕</button>
+          ` : ''}
         </div>
       </div>
-      <div class="itin-stops">
+      <div class="itin-stops" id="itinStops-${itin.id}">
         ${itin.stops.map((stop, i) => `
           <div class="itin-stop">
             ${i < itin.stops.length-1 ? '<div class="itin-stop-line"></div>' : ''}
@@ -442,6 +489,68 @@ function renderItineraries() {
       </div>
     </div>
   `).join('');
+}
+
+async function loadItineraryDetail(itineraryId) {
+  try {
+    const detail = await getItineraryDetail(itineraryId);
+    if (!detail || !detail.jadwal) return;
+
+    // Flatten jadwal ke stops
+    const stops = [];
+    const hariKeys = Object.keys(detail.jadwal).sort((a, b) => {
+      const ha = parseInt(a.replace('Hari ', ''));
+      const hb = parseInt(b.replace('Hari ', ''));
+      return ha - hb;
+    });
+
+    for (const hariKey of hariKeys) {
+      const items = detail.jadwal[hariKey];
+      for (const item of items) {
+        stops.push({
+          item_id : item.item_id,
+          name    : item.tempat ? item.tempat.nama : 'Tidak diketahui',
+          time    : item.jam || '-',
+          hari    : parseInt(hariKey.replace('Hari ', '')),
+          catatan : item.catatan || '',
+          rating  : item.tempat ? item.tempat.rating : null
+        });
+      }
+    }
+
+    // Update di array itineraries
+    const itinIdx = itineraries.findIndex(i => i.id === itineraryId);
+    if (itinIdx !== -1) itineraries[itinIdx].stops = stops;
+
+    // Render stops ke DOM
+    const stopsEl = document.getElementById(`itinStops-${itineraryId}`);
+    if (!stopsEl) return;
+
+    if (stops.length === 0) {
+      stopsEl.innerHTML = '<div style="font-size:13px;color:var(--text-muted);padding:8px">Belum ada tempat ditambahkan</div>';
+      return;
+    }
+
+    let currentHari = 0;
+    stopsEl.innerHTML = stops.map((stop, i) => {
+      let hariLabel = '';
+      if (stop.hari !== currentHari) {
+        currentHari = stop.hari;
+        hariLabel = `<div style="font-size:11px;font-weight:700;color:var(--secondary);margin:${i>0?'8':'0'}px 0 4px">Hari ${stop.hari}</div>`;
+      }
+      return `${hariLabel}
+        <div class="itin-stop">
+          ${i < stops.length-1 ? '<div class="itin-stop-line"></div>' : ''}
+          <div class="itin-stop-dot" style="background:${i===0?'var(--secondary)':'var(--primary)'};color:${i===0?'var(--bg-dark)':'white'}">${i+1}</div>
+          <div class="itin-stop-info">
+            <div class="itin-stop-name">${stop.name}${stop.rating ? ` <span style="font-size:11px;color:#fbbf24">★ ${stop.rating}</span>` : ''}</div>
+            <div class="itin-stop-time">⏰ ${stop.time}${stop.catatan ? ` · ${stop.catatan}` : ''}</div>
+          </div>
+        </div>`;
+    }).join('');
+  } catch (error) {
+    console.error('Gagal memuat detail itinerary:', error);
+  }
 }
 
 function createItinerary() {
@@ -478,14 +587,11 @@ async function renderTop10() {
 
     const rankClass = i => i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
     document.getElementById('top10Grid').innerHTML = sorted.map((p, i) => `
-    const topBg = p.image_url ?
-    <div class="top-item-img" style="${p.image_url ? 
-      `background-image: url('${p.image_url}'); background-size: cover; background-position: center;` : 
-        `background:${gradients[i%gradients.length]}`}">
-    </div>
       <div class="top-item" onclick="showToast('Membuka ${p.name}...')">
         <div class="top-rank ${rankClass(i)}">#${i+1}</div>
-        <div class="top-item-img" style="background:${topBg}"></div>
+        <div class="top-item-img" style="${p.image_url ? 
+          `background-image: url('${p.image_url}'); background-size: cover; background-position: center;` : 
+            `background:${gradients[i%gradients.length]}`}"></div>
         <div class="top-item-info">
           <div class="top-item-name">${p.name}</div>
           <div style="font-size:13px;color:var(--text-muted);margin:4px 0">${p.desc}</div>
@@ -501,7 +607,7 @@ async function renderTop10() {
       </div>
     `).join('');
   } catch (error) {
-    console.warn("Gagal fetch top 10 dari API, menggunakna data lokal:", error.message);
+    console.warn("Gagal fetch top 10 dari API, menggunakan data lokal:", error.message);
     // Fallback ke data lokal
     const top10 = [...places].sort((a,b) => b.rating - a.rating).slice(0, 10);
     const rankClass = i => i===0?'gold':i===1?'silver':i===2?'bronze':'';
@@ -963,11 +1069,12 @@ async function exportItineraryToPDF(itineraryId) {
 
     if(!response.ok) {
       throw new Error('Gagal mengekspor PDF');
+      throw new Error(errData?.detail || 'Gagal mengekspor PDF');
     }
 
     // Download PDF
     const blob = await response.blob();
-    const url = window.URL.createObjectURL();
+    const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = `itinerary_${itineraryId}.pdf`;
@@ -998,29 +1105,44 @@ async function getItineraris() {
   }
 }
 
-async function createItinerery(judul, total_hari) {
-  try{
-    const response = await authorizedFetch('/itinerary', {
-      method: 'POST',
-      body: JSON.stringify({ judul, total_hari })
+async function createItinerary() {
+  const name = document.getElementById('itinName')?.value || document.getElementById('modalItinName')?.value || '';
+  const durText = document.getElementById('itinDuration')?.value || '1 Hari';
+  
+  if (!name.trim()) { 
+    showToast('Masukkan nama itinerary dulu!'); 
+    return; 
+  }
+
+  const token = localStorage.getItem('token');
+  if (!token) {
+    showToast('Silakan login terlebih dahulu');
+    return;
+  }
+
+  // Parse total_hari dari string "2 Hari" → 2
+  const total_hari = parseInt(durText) || 1;
+
+  try {
+    const response = await authorizedFetch(`/itinerary?judul=${encodeURIComponent(name)}&total_hari=${total_hari}`, {
+      method: 'POST'
     });
 
-    if(!response) {
-      return null;
-    }
+    if (!response) return;
 
     const data = await response.json();
-    if(!response.ok) {
+    if (response.ok) {
       showToast('Itinerary berhasil dibuat! 🎉');
-      return data;
+      renderItineraries();  // Refresh daftar dari backend
+      // Reset form
+      const itinNameInput = document.getElementById('itinName');
+      if (itinNameInput) itinNameInput.value = '';
     } else {
       showToast(data.detail || 'Gagal membuat itinerary');
-      return null;
     }
   } catch (error) {
     console.error(error);
     showToast('Gagal membuat itinerary');
-    return null;
   }
 }
 
@@ -1029,8 +1151,8 @@ async function getItineraryDetail(itineraryId){
     const response = await authorizedFetch(`/itinerary/${itineraryId}`);
     if(!response || !response.ok) {
       throw new Error('Gagal memuat detail itinerary');
-      return await response.json();
     }
+    return await response.json();
   } catch (error) { 
     console.error(error);
     showToast('Gagal memuat detail itinerary');
@@ -1040,7 +1162,11 @@ async function getItineraryDetail(itineraryId){
 
 async function addItemToItinerary(itineraryId, tempatId, hari, urutan, jam = null, catatan = null) {
   try{
-    const response = await authorizedFetch(`/itinerary/${itineraryId}/items`, {
+    let url = `/itinerary/${itineraryId}/item?tempat_id=${tempatId}&hari=${hari}&urutan=${urutan}`;
+    if (jam) url += `&jam=${encodeURIComponent(jam)}`;
+    if (catatan) url += `&catatan=${encodeURIComponent(catatan)}`;
+
+    const response = await authorizedFetch(`/itinerary/${itineraryId}/item`, {
       method: 'POST',
       body: JSON.stringify({ tempat_Id: tempatId, hari, urutan, jam, catatan })
     });
@@ -1063,8 +1189,6 @@ async function addItemToItinerary(itineraryId, tempatId, hari, urutan, jam = nul
     return null;    
   }
 }
-
-
 
 async function deleteItinerary(itinereryId) {
   try {
@@ -1089,7 +1213,7 @@ async function deleteItinerary(itinereryId) {
 
 async function deleteItineraryItem(itinereryId, itemId) {
   try {
-    const response = await authorizedFetch(`/itinerary/${itinereryId}/items/${itemId}`, {
+    const response = await authorizedFetch(`/itinerary/${itinereryId}/item/${itemId}`, {
       method: 'DELETE'
     });
 
