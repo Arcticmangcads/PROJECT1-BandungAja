@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Path
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from database import get_db
@@ -120,10 +120,10 @@ def get_detail_itinerary(
 # POST untuk menambah tempat ke itinerary pada hari tertentu
 @router.post("/{itinerary_id}/item")
 def tambah_item(
-    itinerary_id : int = Field(..., gt = 0),
-    tempat_id    : int = Field(..., gt = 0),
-    hari         : int = Field(..., gt = 0),
-    urutan       : int = Field(..., gt = 0),
+    itinerary_id : int = Path(..., gt = 0),
+    tempat_id    : int = Query(..., gt = 0),
+    hari         : int = Query(..., gt = 1),
+    urutan       : int = Query(..., gt = 1),
     jam          : Optional[str] = None,
     catatan      : Optional[str] = None,
     db           : Session = Depends(get_db),
