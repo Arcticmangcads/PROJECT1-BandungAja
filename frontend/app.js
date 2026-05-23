@@ -478,9 +478,14 @@ async function renderTop10() {
 
     const rankClass = i => i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
     document.getElementById('top10Grid').innerHTML = sorted.map((p, i) => `
+    const topBg = p.image_url ?
+    <div class="top-item-img" style="${p.image_url ? 
+      `background-image: url('${p.image_url}'); background-size: cover; background-position: center;` : 
+        `background:${gradients[i%gradients.length]}`}">
+    </div>
       <div class="top-item" onclick="showToast('Membuka ${p.name}...')">
         <div class="top-rank ${rankClass(i)}">#${i+1}</div>
-        <div class="top-item-img" style="background:${gradients[i%gradients.length]}"></div>
+        <div class="top-item-img" style="background:${topBg}"></div>
         <div class="top-item-info">
           <div class="top-item-name">${p.name}</div>
           <div style="font-size:13px;color:var(--text-muted);margin:4px 0">${p.desc}</div>
