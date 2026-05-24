@@ -395,11 +395,11 @@
           <div class="profile-stat-label">Kunjungan</div>
         </div>
         <div class="profile-stat">
-          <div class="profile-stat-num">12</div>
+          <div class="profile-stat-num" id="profileStatItinerary">-</div>
           <div class="profile-stat-label">Itinerary</div>
         </div>
         <div class="profile-stat">
-          <div class="profile-stat-num">89</div>
+          <div class="profile-stat-num" id="profileStatTersimpan">-</div>
           <div class="profile-stat-label">Tersimpan</div>
         </div>
       </div>
@@ -729,6 +729,10 @@
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
       Navigasi
     </button>
+    <button class="pdrawer-btn-outline" onclick="openDetailFromDrawer()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      Lihat Detail
+    </button>
     <button class="pdrawer-btn-primary" onclick="addDrawerPlaceToItinerary()">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       Tambah ke Itinerary
@@ -761,7 +765,7 @@
     <div class="delete-itin-warn">Tindakan ini tidak bisa dibatalkan. Semua destinasi dalam itinerary ini akan ikut terhapus.</div>
     <div class="delete-itin-actions">
       <button class="delete-itin-btn-cancel" onclick="closeModal('deleteItinModal')">Batal</button>
-      <button class="delete-itin-btn-confirm" id="deleteItinConfirmBtn">
+      <button class="delete-itin-btn-confirm" id="deleteItinConfirmBtn" onclick="confirmDeleteItineraryAction()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
         Ya, Hapus
       </button>
@@ -868,6 +872,35 @@
   </div>
 </div>
 
+<!-- MODAL EDIT PROFIL -->
+<div class="modal-overlay" id="editProfileModal" onclick="if(event.target===this)closeModal('editProfileModal')">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('editProfileModal')">✕</button>
+    <div class="modal-title">Edit Profil ✏️</div>
+    <div class="modal-sub">Perbarui informasi profilmu</div>
+    <div class="itin-form-row">
+      <label class="itin-form-label">Nama Depan</label>
+      <input type="text" id="editNamaDepan" class="itin-form-input">
+    </div>
+    <div class="itin-form-row">
+      <label class="itin-form-label">Nama Belakang</label>
+      <input type="text" id="editNamaBelakang" class="itin-form-input">
+    </div>
+    <div class="itin-form-row">
+      <label class="itin-form-label">Email</label>
+      <input type="email" id="editEmail" class="itin-form-input">
+    </div>
+    <div class="itin-form-row">
+      <label class="itin-form-label">Lokasi</label>
+      <input type="text" id="editLokasi" class="itin-form-input" placeholder="Contoh: Bandung, Indonesia">
+    </div>
+    <div class="itin-form-row">
+      <label class="itin-form-label">Bio Singkat</label>
+      <textarea id="editBio" class="itin-form-input" style="height:80px;resize:none" placeholder="Ceritakan sedikit tentang dirimu..."></textarea>
+    </div>
+    <button class="btn-create-itin" style="margin-top:10px" onclick="saveProfileChanges()">Simpan Perubahan</button>
+  </div>
+</div>
 
 </body>
 </html>

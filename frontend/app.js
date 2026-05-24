@@ -462,8 +462,10 @@ async function renderItineraries() {
   // Render (baik dari backend maupun dummy)
   if (itineraries.length === 0) {
     list.innerHTML = `
-      <div class="glass-card" style="padding:24px;text-align:center">
-        <div style="font-size:14px;color:var(--text-muted)">Belum ada itinerary. Buat yang pertama!</div>
+      <div class="itin-empty-state">
+        <div class="itin-empty-icon">🗺️</div>
+        <div class="itin-empty-title">Belum ada itinerary</div>
+        <div class="itin-empty-sub">Buat itinerary pertamamu dan mulai rencanakan perjalanan seru di Bandung!</div>
       </div>`;
     return;
   }
@@ -477,13 +479,12 @@ async function renderItineraries() {
           <div class="itin-plan-date">📅 ${itin.date} · ⏱ ${itin.total_hari} Hari</div>
         </div>
         <div style="display:flex;gap:8px;align-items:center">
-          <div class="itin-plan-badge" id="itinBadge-${itin.id}">${itin.stops.length} Stop</div>
-          ${token ? `
-          <button onclick="event.stopPropagation();exportItineraryToPDF(${itin.id})" 
-                  style="padding:6px 12px;border-radius:8px;background:rgba(192,241,28,0.1);border:1px solid rgba(192,241,28,0.3);color:var(--secondary);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer">Export PDF</button>
-          <button onclick="event.stopPropagation();deleteItinerary(${itin.id})" 
-                  style="padding:6px 8px;border-radius:8px;background:rgba(255,80,80,0.1);border:1px solid rgba(255,80,80,0.3);color:#ff5050;font-family:inherit;font-size:12px;cursor:pointer">✕</button>
-          ` : ''}
+          <div class="itin-plan-badge">${itin.stops.length} Stop</div>
+          <button onclick="event.stopPropagation();showToast('Mengekspor PDF...')" style="padding:6px 12px;border-radius:8px;background:rgba(192,241,28,0.1);border:1px solid rgba(192,241,28,0.3);color:var(--secondary);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer">Export PDF</button>
+          <button class="itin-delete-btn" onclick="event.stopPropagation();confirmDeleteItinerary(${itin.id}, '${itin.name.replace(/'/g, "\\'")}')" title="Hapus itinerary" aria-label="Hapus itinerary ${itin.name}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+            Hapus
+          </button>
         </div>
       </div>
       <div class="itin-stops" id="itinStops-${itin.id}">
@@ -498,14 +499,37 @@ async function renderItineraries() {
           </div>
         `).join('')}
       </div>
+      <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--glass-border);">
+        <button class="tt-add-btn" onclick="event.stopPropagation();openTambahTempatModal(${itin.id})">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Tambah Tempat
+        </button>
+      </div>
     </div>
   `).join('');
 
   // Auto-load detail untuk card pertama (yang aktif) setelah render
   if (token && itineraries.length > 0) {
-    loadItineraryDetail(itineraries[0].id);
+    for (const itin of itineraries) {
+        loadItineraryDetail(itin.id);
+    }
   }
 }
+
+function confirmDeleteItinerary(id, name) {
+    document.getElementById('deleteItinName').textContent = name;
+    window.pendingDeleteItinId = id;
+    showModal('deleteItinModal');
+}
+
+async function confirmDeleteItineraryAction() {
+    const id = window.pendingDeleteItinId;
+    if (id) {
+        await deleteItinerary(id);
+        closeModal('deleteItinModal');
+        window.pendingDeleteItinId = null;
+    }
+};
 
 async function loadItineraryDetail(itineraryId) {
   try {
@@ -602,94 +626,217 @@ async function loadItineraryDetail(itineraryId) {
 
 // ===== TOP 10 =====
 async function renderTop10() {
+  const rankClass = i => i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+
+  const buildCard = (p, i) => {
+    const bg = p.image_url
+      ? `background-image:url('${p.image_url}');background-size:cover;background-position:center;`
+      : `background:${gradients[i % gradients.length]};`;
+    const data = encodeURIComponent(JSON.stringify(p));
+    return `
+      <div class="top-item" onclick="openPlaceDrawer(JSON.parse(decodeURIComponent('${data}')), null)">
+        <div class="top-rank ${rankClass(i)}">#${i + 1}</div>
+        <div class="top-item-img" style="${bg}"></div>
+        <div class="top-item-info">
+          <div class="top-item-name">${p.nama || p.name}</div>
+          <div style="font-size:13px;color:var(--text-muted);margin:4px 0">${(p.deskripsi || p.desc || '').substring(0, 80)}${(p.deskripsi || p.desc || '').length > 80 ? '...' : ''}</div>
+          <div class="top-item-tags">
+            <span class="top-item-tag">${p.kategori || p.cat}</span>
+            <span class="top-item-tag">📍 ${p.area || (p.alamat ? p.alamat.split(',')[0] : 'Bandung')}</span>
+          </div>
+        </div>
+        <div class="top-item-score">
+          ★ ${parseFloat(p.rating || 0).toFixed(1)}
+          <span>${((p.visits || p.jumlah_review || 0) / 1000).toFixed(1)}k kunjungan</span>
+        </div>
+      </div>`;
+  };
+
   try {
     const response = await fetch(`${API_URL}/tempat?sort_by=rating&limit=10`);
     const dataTop10 = await response.json();
 
     const sorted = dataTop10.map(item => ({
       id: item.id,
-      name: item.nama,
-      area: item.alamat ? item.alamat.split(',')[0] : "Bandung",
-      cat: item.kategori ? item.kategori.charAt(0).toUpperCase() + item.kategori.slice(1) : "Wisata",
-      rating: item.rating || 0.0,
+      nama: item.nama,
+      area: item.alamat ? item.alamat.split(',')[0] : 'Bandung',
+      kategori: item.kategori || 'Wisata',
+      rating: item.rating || 0,
       visits: item.jumlah_review || 0,
-      badge: item.rating >= 4.5 ? "Ikonik" : "Trending",
-      desc: item.deskripsi || "Tidak ada deskripsi",
-      image_url: item.image_url ?
-        (item.image_url.startsWith('http') ?
-          item.image_url :
-            `http://127.0.0.1:8000/static/${item.image_url}`) :
-        null
+      badge: item.rating >= 4.5 ? 'Ikonik' : 'Trending',
+      deskripsi: item.deskripsi || 'Tidak ada deskripsi',
+      alamat: item.alamat || 'Bandung',
+      harga_min: item.harga_min,
+      harga_max: item.harga_max,
+      jam_buka: item.jam_buka,
+      jam_tutup: item.jam_tutup,
+      latitude: item.latitude,
+      longitude: item.longitude,
+      image_url: item.image_url
+        ? (item.image_url.startsWith('http') ? item.image_url : `http://127.0.0.1:8000/static/${item.image_url}`)
+        : null
     }));
 
-    const rankClass = i => i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
-    document.getElementById('top10Grid').innerHTML = sorted.map((p, i) => `
-      <div class="top-item" onclick="showToast('Membuka ${p.name}...')">
-        <div class="top-rank ${rankClass(i)}">#${i+1}</div>
-        <div class="top-item-img" style="${p.image_url ? 
-          `background-image: url('${p.image_url}'); background-size: cover; background-position: center;` : 
-            `background:${gradients[i%gradients.length]}`}"></div>
-        <div class="top-item-info">
-          <div class="top-item-name">${p.name}</div>
-          <div style="font-size:13px;color:var(--text-muted);margin:4px 0">${p.desc}</div>
-          <div class="top-item-tags">
-            <span class="top-item-tag">${p.cat}</span>
-            <span class="top-item-tag">📍 ${p.area}</span>
-          </div>
-        </div>
-        <div class="top-item-score">
-          ★ ${p.rating}
-          <span>${(p.visits/1000).toFixed(1)}k kunjungan</span>
-        </div>
-      </div>
-    `).join('');
+    document.getElementById('top10Grid').innerHTML = sorted.map(buildCard).join('');
   } catch (error) {
-    console.warn("Gagal fetch top 10 dari API, menggunakan data lokal:", error.message);
-    // Fallback ke data lokal
-    const top10 = [...places].sort((a,b) => b.rating - a.rating).slice(0, 10);
-    const rankClass = i => i===0?'gold':i===1?'silver':i===2?'bronze':'';
-    document.getElementById('top10Grid').innerHTML = top10.map((p, i) => {
-  
-  // Logika Gambar: Gunakan image_url jika ada, jika tidak pakai gradien
-  const topBg = p.image_url ? 
-    `background-image: url('${p.image_url}'); background-size: cover; background-position: center;` : 
-      `background: ${gradients[i % gradients.length]};`;
-
-  return `
-    <div class="top-item" onclick="showToast('Membuka ${p.name}...')">
-      <div class="top-rank ${rankClass(i)}">#${i+1}</div>
-      <div class="top-item-img" style="${topBg}"></div>
-      <div class="top-item-info">
-        <div class="top-item-name">${p.name}</div>
-        <div style="font-size:13px;color:var(--text-muted);margin:4px 0">${p.desc}</div>
-        <div class="top-item-tags">
-          <span class="top-item-tag">${p.cat}</span>
-          <span class="top-item-tag">📍 ${p.area}</span>
-        </div>
-      </div>
-      <div class="top-item-score">
-        ★ ${p.rating}
-        <span>${(p.visits/1000).toFixed(1)}k kunjungan</span>
-      </div>
-    </div>
-  `}).join('');
+    console.warn('Gagal fetch top 10 dari API, menggunakan data lokal:', error.message);
+    const top10 = [...places].sort((a, b) => b.rating - a.rating).slice(0, 10);
+    document.getElementById('top10Grid').innerHTML = top10.map(buildCard).join('');
   }
 }
 
 // ===== PROFILE =====
 function renderProfile() {
-  const user = JSON.parse(localStorage.getItem('user'));
-  if (user) {
-    // Update nama di bagian Hero Profile
-    const profileNameEl = document.querySelector('.profile-name');
-    const profileAvatarEl = document.querySelector('.profile-avatar');
-    const fullName = document.querySelector('#page-profile .profile-username');
-    
-    if (profileNameEl) profileNameEl.innerText = `${user.nama_depan} ${user.nama_belakang || ''}`;
-    if (profileAvatarEl) profileAvatarEl.innerText = user.nama_depan.charAt(0).toUpperCase();
+  const user = JSON.parse(localStorage.getItem('user')) || { nama_depan: 'Tamu', nama_belakang: '', email: '-' };
+  const profilePhoto = localStorage.getItem('profilePhoto') || user.image_url || null;
+
+  const profileNameEl = document.querySelector('.profile-name');
+  const profileUsernameEl = document.querySelector('#page-profile .profile-username');
+  const profileAvatarEl = document.querySelector('.profile-avatar');
+  const navAvatarBtn = document.querySelector('.avatar-btn');
+
+  const fullName = `${user.nama_depan} ${user.nama_belakang || ''}`.trim();
+  if (profileNameEl) profileNameEl.innerText = fullName;
+  if (profileUsernameEl) profileUsernameEl.innerText = `${fullName} · Explorer Level 5`;
+
+  if (profileAvatarEl) {
+    if (profilePhoto) {
+      profileAvatarEl.innerHTML = `<img src="${profilePhoto}" alt="Foto Profil" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+      profileAvatarEl.style.padding = '0';
+    } else {
+      profileAvatarEl.innerHTML = user.nama_depan.charAt(0).toUpperCase();
+      profileAvatarEl.style.padding = '';
+    }
   }
 
+  if (navAvatarBtn) {
+    if (profilePhoto) {
+      navAvatarBtn.innerHTML = `<img src="${profilePhoto}" alt="Avatar" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+      navAvatarBtn.style.padding = '0';
+      navAvatarBtn.style.overflow = 'hidden';
+    } else {
+      navAvatarBtn.innerHTML = user.nama_depan.charAt(0).toUpperCase();
+      navAvatarBtn.style.padding = '';
+      navAvatarBtn.style.overflow = '';
+    }
+  }
+
+  // Update stat itinerary dan tersimpan
+  const itinEl = document.getElementById('profileStatItinerary');
+  const savedEl = document.getElementById('profileStatTersimpan');
+  if (itinEl) itinEl.textContent = itineraries.length;
+  if (savedEl) savedEl.textContent = savedPlaces.length;
+  
   switchProfileSection(document.querySelector('.profile-menu-item'), 'info');
+}
+
+function openEditProfileModal() {
+  const user = JSON.parse(localStorage.getItem('user')) || {};
+  document.getElementById('editNamaDepan').value = user.nama_depan || '';
+  document.getElementById('editNamaBelakang').value = user.nama_belakang || '';
+  document.getElementById('editEmail').value = user.email || '';
+  document.getElementById('editLokasi').value = user.lokasi || '';
+  document.getElementById('editBio').value = user.bio || '';
+  showModal('editProfileModal');
+}
+
+function saveProfileChanges() {
+  const user = JSON.parse(localStorage.getItem('user')) || {};
+  const namaDepan = document.getElementById('editNamaDepan').value.trim();
+  const namaBelakang = document.getElementById('editNamaBelakang').value.trim();
+  const email = document.getElementById('editEmail').value.trim();
+  const lokasi = document.getElementById('editLokasi').value.trim();
+  const bio = document.getElementById('editBio').value.trim();
+
+  if (!namaDepan) { showToast('Nama depan tidak boleh kosong!'); return; }
+
+  const updatedUser = { ...user, nama_depan: namaDepan, nama_belakang: namaBelakang, email, lokasi, bio };
+  localStorage.setItem('user', JSON.stringify(updatedUser));
+  closeModal('editProfileModal');
+  renderProfile();
+  showToast('Profil berhasil diperbarui! ✅');
+}
+
+function triggerPhotoUpload() {
+  let input = document.getElementById('profilePhotoInput');
+  if (!input) {
+    input = document.createElement('input');
+    input.type = 'file';
+    input.id = 'profilePhotoInput';
+    input.accept = 'image/*';
+    input.style.display = 'none';
+    input.onchange = function() { handlePhotoUpload(this); };
+    document.body.appendChild(input);
+  }
+  input.click();
+}
+
+async function handlePhotoUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')) { showToast('Pilih file gambar yang valid!'); return; }
+  if (file.size > 5 * 1024 * 1024) { showToast('Ukuran foto maksimal 5MB!'); return; }
+
+  const token = localStorage.getItem('token');
+  if (!token) { showToast('Login dulu untuk mengubah foto!'); return; }
+
+  showToast('Mengupload foto...');
+
+  const SUPABASE_URL = 'https://shmtopefytstqmxisxlj.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNobXRvcGVmeXRzdHFteGlzeGxqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0MzAxOTUsImV4cCI6MjA5NDAwNjE5NX0.sz4GEHbp-MIOTpb-y2YPI6ANqoatvir6BmbIuG9PcsE';
+  const BUCKET = 'profile-photos';
+  const user = JSON.parse(localStorage.getItem('user')) || {};
+  const ext = file.name.split('.').pop();
+  const filename = `user_${user.id}.${ext}`;
+
+  try {
+    // 1. Upload langsung ke Supabase Storage dari frontend
+    const uploadRes = await fetch(
+      `${SUPABASE_URL}/storage/v1/object/${BUCKET}/${filename}`,
+      {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'Content-Type': file.type,
+          'x-upsert': 'true'
+        },
+        body: file
+      }
+    );
+
+    if (!uploadRes.ok) { showToast('Gagal upload ke storage'); return; }
+
+    const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${filename}`;
+
+    // 2. Simpan URL ke backend
+    const patchRes = await fetch(`${API_URL}/auth/me`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ image_url: publicUrl })
+    });
+
+    if (!patchRes.ok) { showToast('Gagal menyimpan foto ke profil'); return; }
+
+    const updatedUser = await patchRes.json();
+    user.image_url = updatedUser.image_url;
+    localStorage.setItem('user', JSON.stringify(user));
+    localStorage.removeItem('profilePhoto');
+
+    renderProfile();
+    showToast('Foto profil berhasil diperbarui! 📸');
+  } catch (e) {
+    console.error(e);
+    showToast('Gagal upload foto, coba lagi');
+  }
+}
+
+function removeProfilePhoto() {
+  localStorage.removeItem('profilePhoto');
+  renderProfile();
+  showToast('Foto profil dihapus');
 }
 
 function switchProfileSection(btn, section) {
@@ -708,9 +855,29 @@ function switchProfileSection(btn, section) {
   
   const main = document.getElementById('profileMain');
   
-  if (section === 'info') {
+if (section === 'info') {
+    const profilePhoto = localStorage.getItem('profilePhoto');
+    const avatarHTML = profilePhoto
+      ? `<img src="${profilePhoto}" alt="Foto Profil" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
+      : `<span style="font-size:36px;font-weight:700;color:var(--bg-dark)">${user.nama_depan.charAt(0).toUpperCase()}</span>`;
+
     main.innerHTML = `
       <div class="profile-section">
+        <div style="display:flex;align-items:center;gap:20px;margin-bottom:24px;padding:20px;background:rgba(255,255,255,0.04);border-radius:16px;border:1px solid var(--glass-border)">
+          <div style="width:80px;height:80px;border-radius:50%;background:var(--secondary);flex-shrink:0;display:flex;align-items:center;justify-content:center;overflow:hidden;border:3px solid rgba(192,241,28,0.4)">
+            ${avatarHTML}
+          </div>
+          <div>
+            <div style="font-size:14px;font-weight:700;margin-bottom:8px;color:var(--text-main)">Foto Profil</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button onclick="triggerPhotoUpload()" style="padding:7px 14px;border-radius:8px;background:rgba(192,241,28,0.15);border:1px solid rgba(192,241,28,0.4);color:var(--secondary);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer">
+                📷 Ganti Foto
+              </button>
+              ${profilePhoto ? `<button onclick="removeProfilePhoto()" style="padding:7px 14px;border-radius:8px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:#ef4444;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer">Hapus Foto</button>` : ''}
+            </div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:6px">Format: JPG, PNG · Maks. 5MB</div>
+          </div>
+        </div>
         <div class="profile-section-title">Informasi Pribadi</div>
         <div class="profile-info-grid">
           <div class="profile-info-item">
@@ -738,7 +905,7 @@ function switchProfileSection(btn, section) {
             <div class="profile-info-value" style="color:var(--secondary)">⭐ Level 5 (${user.role || 'User'})</div>
           </div>
         </div>
-        <button class="btn-primary" style="margin-top:24px" onclick="showToast('Profil disimpan!')">Simpan Perubahan</button>
+        <button class="btn-primary" style="margin-top:24px" onclick="openEditProfileModal()">✏️ Edit Profil</button>
       </div>
       <div class="profile-section">
         <div class="profile-section-title">Preferensi Wisata</div>
@@ -938,28 +1105,29 @@ function showToast(msg) {
 }
 
 // ===== NAVBAR SCROLL =====
-window.addEventListener('scroll', () => {
-  const nav = document.getElementById('navbar');
-  if (window.scrollY > 50) nav.classList.add('scrolled');
-  else nav.classList.remove('scrolled');
-  
-  // Fade up observer
-  document.querySelectorAll('.fade-up:not(.visible)').forEach(el => {
-    const rect = el.getBoundingClientRect();
-    if (rect.top < window.innerHeight - 50) el.classList.add('visible');
-  });
-});
-
-// ===== INIT =====
-window.onload = () => {
+document.addEventListener('DOMContentLoaded', () => {
   document.body.classList.add('bg-home');
-  initHome();
+  
+  // Panggil fungsi inisialisasi
+  initHome();                    
+  fetchPlaceFromBackend();      
+  syncWishlist();               
+  updateHeroStats();             
+  showPage('home');              
+  
+  // Jika perlu render profile (hanya jika user login)
+  if (typeof renderProfile === 'function') renderProfile();
+  
+  // Animasi fade-up
   setTimeout(() => {
     document.querySelectorAll('.fade-up').forEach((el, i) => {
       setTimeout(() => el.classList.add('visible'), i * 80 + 300);
     });
   }, 500);
-};
+});
+
+// ===== INIT =====
+
 
 /* 
 =========== FUNGSI-FUNGSI BARU =========== 
@@ -1003,6 +1171,7 @@ async function loginUser(email, password) {
 function logoutUser() {
   localStorage.removeItem('token');
   localStorage.removeItem('user');
+  localStorage.removeItem('profilePhoto');
   showToast('Berhasil keluar');
   showPage('home');
   setTimeout(() => {
@@ -1232,13 +1401,11 @@ async function deleteItinerary(itinereryId) {
       method: 'DELETE'
     });
 
-    if(!response) {
-      return;
-    }
-
-    if(response.ok) {
+    if(response && response.ok) {
       showToast('Itinerary berhasil dihapus');
       if (typeof renderItineraries === 'function') await renderItineraries();
+    } else {
+      return;
     }
   } catch (error) {
     console.error(error);
@@ -1854,56 +2021,97 @@ function showPlaceDetailDrawer(placeId) {
     showToast('Tempat tidak ditemukan');
     return;
   }
-  openPlaceDrawer(tempat, null);
+
+  // Mapping field UI (English) ke field Drawer (Indonesia)
+  const tempat = {
+    id: place.id,
+    nama: place.name || place.nama,
+    kategori: place.cat || place.kategori,
+    alamat: place.area || place.alamat,
+    rating: place.rating,
+    image_url: place.image_url,
+    deskripsi: place.desc || place.deskripsi,
+    jam_buka: place.jam_buka,
+    jam_tutup: place.jam_tutup,
+    harga_min: place.harga_min,
+    harga_max: place.harga_max,
+    latitude: place.latitude,
+    longitude: place.longitude
+  };
+
+  openPlaceDrawer(place, null);
 }
 
 function renderPlaceDetail() {
   if (!currentDetailPlace) return;
-  
   const place = currentDetailPlace;
   const isSaved = savedPlaces.includes(place.id);
-  const g = gradients[place.id % gradients.length];
-  const bgStyle = place.image_url ? 
-    `background-image: url('${place.image_url}'); background-size: cover; background-position: center;` : 
-    `background: ${g};`;
 
-  // Update hero image
+  // Hero
   const heroEl = document.getElementById('detailHero');
   if (heroEl) {
-    heroEl.style.cssText = bgStyle;
+    if (place.image_url) {
+      heroEl.style.cssText = `background-image:url('${place.image_url}');background-size:cover;background-position:center;`;
+    } else {
+      const g = gradients ? gradients[place.id % gradients.length] : 'linear-gradient(135deg,#003585,#004AAD)';
+      heroEl.style.cssText = `background:${g};`;
+    }
   }
 
-  // Update title and meta
-  document.getElementById('detailTitle').textContent = place.name;
-  document.getElementById('detailRating').textContent = place.rating.toFixed(1);
-  document.getElementById('detailVisits').textContent = place.visits > 1000 ? (place.visits / 1000).toFixed(1) + 'K' : place.visits;
-  document.getElementById('detailBadge').textContent = place.badge;
-  document.getElementById('detailArea').textContent = place.area;
-  document.getElementById('detailCategory').textContent = place.cat;
-  
-  // Update price
-  const priceMap = {
-    'free': 'Gratis',
-    'cheap': '< Rp 50.000',
-    'mid': 'Rp 50.000 - 150.000',
-    'premium': '> Rp 150.000'
-  };
-  document.getElementById('detailPrice').textContent = priceMap[place.price] || place.price;
-  
-  // Update description
-  document.getElementById('detailDescription').textContent = place.desc;
-  
-  // Update save button
-  const saveBtn = document.getElementById('detailSaveBtn');
-  if (isSaved) {
-    saveBtn.classList.add('saved');
-    saveBtn.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="#C0F11C" stroke="#C0F11C" stroke-width="2"><path d="M19 21L12 16L5 21V5C5 4.46957 5.21071 3.96086 5.58579 3.58579C5.96086 3.21071 6.46957 3 7 3H17C17.5304 3 18.0391 3.21071 18.4142 3.58579C18.7893 3.96086 19 4.46957 19 5V21Z"/></svg>`;
-  } else {
-    saveBtn.classList.remove('saved');
-    saveBtn.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21L12 16L5 21V5C5 4.46957 5.21071 3.96086 5.58579 3.58579C5.96086 3.21071 6.46957 3 7 3H17C17.5304 3 18.0391 3.21071 18.4142 3.58579C18.7893 3.96086 19 4.46957 19 5V21Z"/></svg>`;
+  document.getElementById('detailTitle').textContent = place.nama || place.name || '—';
+  const rat = parseFloat(place.rating) || 0;
+  document.getElementById('detailRating').textContent = rat.toFixed(1);
+
+  const visits = place.visits || place.jumlah_kunjungan || 0;
+  document.getElementById('detailVisits').textContent = visits > 1000 ? (visits / 1000).toFixed(1) + 'K' : visits;
+
+  const badge = place.badge || place.kategori || '—';
+  document.getElementById('detailBadge').textContent = badge.charAt(0).toUpperCase() + badge.slice(1);
+
+  document.getElementById('detailArea').textContent = place.area || place.alamat || 'Bandung';
+  document.getElementById('detailCategory').textContent = (place.kategori || place.cat || '—').charAt(0).toUpperCase() + (place.kategori || place.cat || '').slice(1);
+
+  // Harga
+  let hargaText = 'Gratis';
+  if (place.harga_min != null && place.harga_max != null) {
+    hargaText = `Rp ${Number(place.harga_min).toLocaleString('id-ID')} – Rp ${Number(place.harga_max).toLocaleString('id-ID')}`;
+  } else if (place.price) {
+    const priceMap = { free: 'Gratis', cheap: '< Rp 50.000', mid: 'Rp 50.000 – 150.000', premium: '> Rp 150.000' };
+    hargaText = priceMap[place.price] || place.price;
   }
+  document.getElementById('detailPrice').textContent = hargaText;
+
+  document.getElementById('detailDescription').textContent = place.deskripsi || place.desc || 'Tidak ada deskripsi tersedia.';
+
+  const saveBtn = document.getElementById('detailSaveBtn');
+  saveBtn.classList.toggle('saved', isSaved);
+  saveBtn.innerHTML = isSaved
+    ? `<svg width="24" height="24" viewBox="0 0 24 24" fill="#C0F11C" stroke="#C0F11C" stroke-width="2"><path d="M19 21L12 16L5 21V5C5 4.46957 5.21071 3.96086 5.58579 3.58579C5.96086 3.21071 6.46957 3 7 3H17C17.5304 3 18.0391 3.21071 18.4142 3.58579C18.7893 3.96086 19 4.46957 19 5V21Z"/></svg>`
+    : `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21L12 16L5 21V5C5 4.46957 5.21071 3.96086 5.58579 3.58579C5.96086 3.21071 6.46957 3 7 3H17C17.5304 3 18.0391 3.21071 18.4142 3.58579C18.7893 3.96086 19 4.46957 19 5V21Z"/></svg>`;
 }
 
+function toggleDetailSave() {
+  if (!currentDetailPlace) return;
+  const id = currentDetailPlace.id;
+  const idx = savedPlaces.indexOf(id);
+  if (idx === -1) {
+    savedPlaces.push(id);
+    showToast('Ditambahkan ke wishlist ❤️');
+  } else {
+    savedPlaces.splice(idx, 1);
+    showToast('Dihapus dari wishlist');
+  }
+  localStorage.setItem('savedPlaces', JSON.stringify(savedPlaces));
+  renderPlaceDetail();
+}
+
+function openDetailFromDrawer() {
+  if (!_currentDrawerPlace) return;
+  currentDetailPlace = _currentDrawerPlace;
+  closePlaceDrawer();
+  renderPlaceDetail();
+  showPage('detail');
+}
 // Export fungsi ke objek global window untuk dipanggil langsung dari HTML
 window.loginUser = loginUser;
 window.logoutUser = logoutUser;
@@ -1936,6 +2144,14 @@ window._ttSelectHari = _ttSelectHari;
 window._ttSelectItin = _ttSelectItin;
 window.showPlaceDetailFromTempat = showPlaceDetailFromTempat;
 window.showPlaceDetailDrawer = showPlaceDetailDrawer;
+window.openEditProfileModal = openEditProfileModal;
+window.saveProfileChanges = saveProfileChanges;
+window.triggerPhotoUpload = triggerPhotoUpload;
+window.handlePhotoUpload = handlePhotoUpload;
+window.removeProfilePhoto = removeProfilePhoto;
+window.confirmDeleteItineraryAction = confirmDeleteItineraryAction;
+window.openDetailFromDrawer = openDetailFromDrawer;
+window.toggleDetailSave = toggleDetailSave;
 
 document.addEventListener('DOMContentLoaded', () => {
   fetchPlaceFromBackend();
