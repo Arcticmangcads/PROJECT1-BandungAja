@@ -233,7 +233,7 @@ function createPlaceCard(place, idx) {
     `background: ${g};`;
 
 return `
-    <div class="place-card" onclick="showPlaceDetail(${place.id})">
+    <div class="place-card" onclick="showPlaceDetailDrawer(${place.id})">
       <div class="place-img">
         <div class="place-img-bg" style="${bgStyle}"></div>
         <div class="place-badge">${place.badge}</div>
@@ -468,67 +468,40 @@ async function renderItineraries() {
     return;
   }
 
-  list.innerHTML = itineraries.map((itin, idx) => {
-    const maxDays = parseInt(itin.duration) || 1;
-    return `
+  list.innerHTML = itineraries.map((itin, idx) => `
     <div class="itin-plan-card ${idx===0?'active':''}" 
          onclick="document.querySelectorAll('.itin-plan-card').forEach(c=>c.classList.remove('active'));this.classList.add('active');${token ? `loadItineraryDetail(${itin.id})` : ''}">
       <div class="itin-plan-header">
         <div>
           <div class="itin-plan-name">${itin.name}</div>
-          <div class="itin-plan-date">📅 ${itin.date} · ⏱ ${itin.total_hari || maxDays} Hari</div>
+          <div class="itin-plan-date">📅 ${itin.date} · ⏱ ${itin.total_hari} Hari</div>
         </div>
         <div style="display:flex;gap:8px;align-items:center">
-          <div class="itin-plan-badge">${itin.stops.length} Stop</div>
-          <button onclick="event.stopPropagation();exportItineraryToPDF(${itin.id})" style="padding:6px 12px;border-radius:8px;background:rgba(192,241,28,0.1);border:1px solid rgba(192,241,28,0.3);color:var(--secondary);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer">Export PDF</button>
-          <button class="itin-delete-btn" onclick="event.stopPropagation();deleteItinerary(${itin.id}, '${itin.name.replace(/'/g, "\\'")}')" title="Hapus itinerary" aria-label="Hapus itinerary ${itin.name}">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-            Hapus
-          </button>
+          <div class="itin-plan-badge" id="itinBadge-${itin.id}">${itin.stops.length} Stop</div>
+          ${token ? `
+          <button onclick="event.stopPropagation();exportItineraryToPDF(${itin.id})" 
+                  style="padding:6px 12px;border-radius:8px;background:rgba(192,241,28,0.1);border:1px solid rgba(192,241,28,0.3);color:var(--secondary);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer">Export PDF</button>
+          <button onclick="event.stopPropagation();deleteItinerary(${itin.id})" 
+                  style="padding:6px 8px;border-radius:8px;background:rgba(255,80,80,0.1);border:1px solid rgba(255,80,80,0.3);color:#ff5050;font-family:inherit;font-size:12px;cursor:pointer">✕</button>
+          ` : ''}
         </div>
       </div>
-            <div class="itin-stops" id="itinStops-${itin.id}">
-        ${itin.stops.length === 0 ? `
-          <div class="itin-stops-empty">Belum ada tempat ditambahkan</div>
-        ` : itin.stops.map((stop, i) => {
-          const tempat = stop.tempat || {
-            id: stop.id || (itin.id * 1000 + i),
-            nama: stop.name,
-            kategori: stop.cat || 'wisata',
-            alamat: stop.area || 'Bandung',
-            rating: stop.rating || null,
-            image_url: stop.image_url || null,
-            deskripsi: stop.desc || stop.deskripsi || null,
-            jam_buka: stop.jam_buka || null,
-            jam_tutup: stop.jam_tutup || null,
-            harga_min: null, harga_max: null,
-            latitude: null, longitude: null,
-          };
-          const ctx = { jam: stop.time || stop.jam || null, catatan: stop.catatan || null };
-          const tempJSON = JSON.stringify(tempat).replace(/'/g, '&#39;').replace(/"/g, '&quot;');
-          const ctxJSON  = JSON.stringify(ctx).replace(/'/g, '&#39;').replace(/"/g, '&quot;');
-          return `
-          <div class="itin-stop has-detail" onclick="openPlaceDrawer(JSON.parse(this.dataset.tempat), JSON.parse(this.dataset.ctx))"
-               data-tempat="${tempJSON}" data-ctx="${ctxJSON}" title="Lihat detail ${tempat.nama}">
+      <div class="itin-stops" id="itinStops-${itin.id}">
+        ${itin.stops.length === 0 ? '<div style="font-size:13px;color:var(--text-muted);padding:8px">Memuat tempat...</div>' : itin.stops.map((stop, i) => `
+          <div class="itin-stop">
             ${i < itin.stops.length-1 ? '<div class="itin-stop-line"></div>' : ''}
             <div class="itin-stop-dot" style="background:${i===0?'var(--secondary)':'var(--primary)'};color:${i===0?'var(--bg-dark)':'white'}">${i+1}</div>
             <div class="itin-stop-info">
-              <div class="itin-stop-name">${stop.name || tempat.nama}</div>
-              <div class="itin-stop-time">⏰ ${stop.time || '—'}${stop.catatan ? ' · ' + stop.catatan : ''}</div>
+              <div class="itin-stop-name">${stop.name}</div>
+              <div class="itin-stop-time">⏰ ${stop.time}</div>
             </div>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="2" style="flex-shrink:0;margin-left:auto;"><polyline points="9 18 15 12 9 6"/></svg>
           </div>
-        `}).join('')}
+        `).join('')}
       </div>
-      <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--glass-border);">
-        <button class="tt-add-btn" onclick="event.stopPropagation();openTambahTempatModal(${itin.id})">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          Tambah Tempat
-        </button>
-      </div>
-  `}).join('');
+    </div>
+  `).join('');
 
-  // Auto-load detail untuk card pertama (active) setelah render
+  // Auto-load detail untuk card pertama (yang aktif) setelah render
   if (token && itineraries.length > 0) {
     loadItineraryDetail(itineraries[0].id);
   }
@@ -566,9 +539,20 @@ async function loadItineraryDetail(itineraryId) {
     const itinIdx = itineraries.findIndex(i => i.id === itineraryId);
     if (itinIdx !== -1) itineraries[itinIdx].stops = stops;
 
+    // Update badge stop count
+    const badgeEl = document.getElementById(`itinBadge-${itineraryId}`);
+    if (badgeEl) badgeEl.textContent = `${stops.length} Stop`;
+
     // Render stops ke DOM
     const stopsEl = document.getElementById(`itinStops-${itineraryId}`);
     if (!stopsEl) return;
+
+    // Update badge stop count
+    const card = stopsEl.closest('.itin-plan-card');
+    if (card) {
+      const badge = card.querySelector('.itin-plan-badge');
+      if (badge) badge.textContent = `${stops.length} Stop`;
+    }
 
     if (stops.length === 0) {
       stopsEl.innerHTML = '<div style="font-size:13px;color:var(--text-muted);padding:8px">Belum ada tempat ditambahkan</div>';
@@ -611,13 +595,6 @@ async function loadItineraryDetail(itineraryId) {
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="2" style="flex-shrink:0;margin-left:auto;"><polyline points="9 18 15 12 9 6"/></svg>
       </div>`;
     }).join('');
-
-        // Update badge stop count setelah load detail
-    const card = stopsEl.closest('.itin-plan-card');
-    if (card) {
-      const badge = card.querySelector('.itin-plan-badge');
-      if (badge) badge.textContent = `${stops.length} Stop`;
-    }
   } catch (error) {
     console.error('Gagal memuat detail itinerary:', error);
   }
@@ -1261,7 +1238,7 @@ async function deleteItinerary(itinereryId) {
 
     if(response.ok) {
       showToast('Itinerary berhasil dihapus');
-      if (typeof renderItineraries === 'function') renderItineraries();
+      if (typeof renderItineraries === 'function') await renderItineraries();
     }
   } catch (error) {
     console.error(error);
@@ -1285,10 +1262,7 @@ async function deleteItineraryItem(itinereryId, itemId) {
     if(response.ok) {
       showToast(data.message);
       // Refresh itinerary detail
-      const detail = await getItineraryDetail(itinereryId);
-      if (detail && typeof renderItineraryDetail === 'function') {
-        loadItineraryDetail(detail);
-      }
+      loadItineraryDetail(itinereryId);
     }
   } catch (error) {
     console.error(error);
@@ -1624,6 +1598,12 @@ async function ttSaveItem() {
     catatan: catatan || ''
   });
 
+    // Validasi hari tidak melebihi total_hari itinerary
+  if (_ttHari > (itin.total_hari || 1)) {
+    showToast(`Hari ${_ttHari} melebihi durasi itinerary (${itin.total_hari || 1} hari)`);
+    return;
+  }
+
   // Kirim ke backend jika user sudah login
   const token = localStorage.getItem('token');
   if (token) {
@@ -1868,15 +1848,13 @@ function showPlaceDetailFromTempat(tempat, ctx) {
 }
 
 // ===== PLACE DETAIL PAGE =====
-function showPlaceDetail(placeId) {
+function showPlaceDetailDrawer(placeId) {
   const place = places.find(p => p.id === placeId);
   if (!place) {
     showToast('Tempat tidak ditemukan');
     return;
   }
-  currentDetailPlace = place;
-  renderPlaceDetail();
-  showPage('detail');
+  openPlaceDrawer(tempat, null);
 }
 
 function renderPlaceDetail() {
@@ -1957,6 +1935,7 @@ window.ttSaveItem = ttSaveItem;
 window._ttSelectHari = _ttSelectHari;
 window._ttSelectItin = _ttSelectItin;
 window.showPlaceDetailFromTempat = showPlaceDetailFromTempat;
+window.showPlaceDetailDrawer = showPlaceDetailDrawer;
 
 document.addEventListener('DOMContentLoaded', () => {
   fetchPlaceFromBackend();
