@@ -117,8 +117,8 @@ def get_detail_itinerary(
 def tambah_item(
     itinerary_id : int = Path(..., gt = 0),
     tempat_id    : int = Query(..., gt = 0),
-    hari         : int = Query(..., gt = 1),
-    urutan       : int = Query(..., gt = 1),
+    hari         : int = Query(..., ge = 1),
+    urutan       : int = Query(..., ge = 1),
     jam          : Optional[str] = None,
     catatan      : Optional[str] = None,
     db           : Session = Depends(get_db),
