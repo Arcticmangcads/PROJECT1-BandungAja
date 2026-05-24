@@ -9,6 +9,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.9.0/tabler-icons.min.css">
 <link rel="stylesheet" href="style.css"/>
 <script src="app.js" defer></script>
 </head>
@@ -62,17 +63,17 @@
     </div>
     <div class="hero-stats">
       <div class="stat-card">
-        <div class="stat-num">500+</div>
+        <div class="stat-num" id="stat-destinasi">0</div>
         <div class="stat-label">Destinasi</div>
       </div>
       <div class="stat-card">
-        <div class="stat-num">200+</div>
+        <div class="stat-num" id="stat-kuliner">0</div>
         <div class="stat-label">Kuliner</div>
       </div>
-      <div class="stat-card">
-        <div class="stat-num">50+</div>
+     <div class="stat-card">
+        <div class="stat-num" id="stat-wisata">0</div>
         <div class="stat-label">Wisata</div>
-      </div>
+     </div>
     </div>
     <div class="hero-search-wrap">
       <div class="hero-search-bar">
@@ -394,11 +395,11 @@
           <div class="profile-stat-label">Kunjungan</div>
         </div>
         <div class="profile-stat">
-          <div class="profile-stat-num">12</div>
+          <div class="profile-stat-num" id="profileStatItinerary">-</div>
           <div class="profile-stat-label">Itinerary</div>
         </div>
         <div class="profile-stat">
-          <div class="profile-stat-num">89</div>
+          <div class="profile-stat-num" id="profileStatTersimpan">-</div>
           <div class="profile-stat-label">Tersimpan</div>
         </div>
       </div>
@@ -521,12 +522,385 @@
 </div>
 
 
+<!-- ===== DETAIL PLACE PAGE ===== -->
+<div class="page" id="page-detail">
+  <div class="detail-header">
+    <button class="detail-back-btn" onclick="showPage('search')">← Kembali</button>
+    <button class="detail-share-btn" onclick="showToast('Bagikan fitur segera hadir!')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+    </button>
+  </div>
+
+  <div class="detail-hero" id="detailHero"></div>
+
+  <div class="detail-content">
+    <!-- Info Utama -->
+    <div class="detail-main">
+      <div class="detail-title-section">
+        <div>
+          <h1 class="detail-title" id="detailTitle">Nama Tempat</h1>
+          <div class="detail-meta-top">
+            <div class="detail-rating">★ <span id="detailRating">4.8</span></div>
+            <div class="detail-visits">👁️ <span id="detailVisits">15.4K</span> pengunjung</div>
+            <div class="detail-badge" id="detailBadge">Ikonik</div>
+          </div>
+        </div>
+        <button class="detail-save-btn" id="detailSaveBtn" onclick="toggleDetailSave()">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21L12 16L5 21V5C5 4.46957 5.21071 3.96086 5.58579 3.58579C5.96086 3.21071 6.46957 3 7 3H17C17.5304 3 18.0391 3.21071 18.4142 3.58579C18.7893 3.96086 19 4.46957 19 5V21Z"/></svg>
+        </button>
+      </div>
+
+      <!-- Info Lokasi & Kategori -->
+      <div class="detail-info-grid">
+        <div class="detail-info-item">
+          <div class="detail-info-label">📍 Lokasi</div>
+          <div class="detail-info-value" id="detailArea">Braga</div>
+        </div>
+        <div class="detail-info-item">
+          <div class="detail-info-label">🏷️ Kategori</div>
+          <div class="detail-info-value" id="detailCategory">Wisata</div>
+        </div>
+        <div class="detail-info-item">
+          <div class="detail-info-label">💰 Harga</div>
+          <div class="detail-info-value" id="detailPrice">Gratis</div>
+        </div>
+        <div class="detail-info-item">
+          <div class="detail-info-label">⏰ Jam Operasional</div>
+          <div class="detail-info-value">08:00 - 17:00</div>
+        </div>
+      </div>
+
+      <!-- Deskripsi -->
+      <div class="detail-section">
+        <h2 class="detail-section-title">Tentang Tempat Ini</h2>
+        <p class="detail-description" id="detailDescription">Deskripsi tempat akan ditampilkan di sini.</p>
+      </div>
+
+      <!-- Fasilitas -->
+
+      <!-- Ulasan -->
+
+      <!-- Tombol Aksi -->
+      <div class="detail-actions">
+        <button class="btn-primary" style="flex: 1;" onclick="showToast('Navigasi GPS segera hadir!')">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+          Navigasi GPS
+        </button>
+        <button class="btn-outline" style="flex: 1;" onclick="openTambahTempatModal(null, currentDetailPlace ? currentDetailPlace.id : null)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+          Tambah ke Itinerary
+        </button>
+      </div>
+    </div>
+
+    <!-- Sidebar Info Tambahan -->
+
+      <div class="sidebar-card">
+        <div class="sidebar-card-title">Jam Operasional</div>
+        <div class="sidebar-info-item">
+          <div class="sidebar-label">Senin - Jumat</div>
+          <div class="sidebar-value">08:00 - 17:00</div>
+        </div>
+        <div class="sidebar-info-item">
+          <div class="sidebar-label">Sabtu - Minggu</div>
+          <div class="sidebar-value">08:00 - 18:00</div>
+        </div>
+        <div class="sidebar-info-item">
+          <div class="sidebar-label">Hari Libur</div>
+          <div class="sidebar-value">Tutup</div>
+        </div>
+      </div>
+
+      <div class="sidebar-card">
+        <div class="sidebar-card-title">Tips Kunjungan</div>
+        <div class="sidebar-tips">
+          <div class="tip-item">💡 Datang pagi hari untuk menghindari keramaian</div>
+          <div class="tip-item">📸 Terbaik untuk foto saat golden hour</div>
+          <div class="tip-item">🎒 Bawa air minum dan sunscreen</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== PLACE DETAIL DRAWER ===== -->
+<div class="pdrawer-overlay" id="placeDrawerOverlay" onclick="closePlaceDrawer()"></div>
+<div class="pdrawer" id="placeDrawer" role="dialog" aria-modal="true" aria-label="Detail Tempat">
+
+  <!-- Hero Image -->
+  <div class="pdrawer-hero" id="pdrawerHero">
+    <div class="pdrawer-hero-overlay"></div>
+    <button class="pdrawer-close" onclick="closePlaceDrawer()" aria-label="Tutup">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <div class="pdrawer-category-chip" id="pdrawerChip">Kuliner</div>
+  </div>
+
+  <!-- Scrollable Body -->
+  <div class="pdrawer-body">
+
+    <!-- Title Row -->
+    <div class="pdrawer-title-row">
+      <div class="pdrawer-title-wrap">
+        <h2 class="pdrawer-name" id="pdrawerName">—</h2>
+        <div class="pdrawer-rating-row">
+          <span class="pdrawer-stars" id="pdrawerStars">★★★★★</span>
+          <span class="pdrawer-rating-num" id="pdrawerRating">4.8</span>
+        </div>
+      </div>
+      <button class="pdrawer-save-btn" id="pdrawerSaveBtn" onclick="toggleDrawerSave()" title="Simpan">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 21L12 16L5 21V5C5 4.46957 5.21071 3.96086 5.58579 3.58579C5.96086 3.21071 6.46957 3 7 3H17C17.5304 3 18.0391 3.21071 18.4142 3.58579C18.7893 3.96086 19 4.46957 19 5V21Z"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Quick Info Pills -->
+    <div class="pdrawer-pills">
+      <div class="pdrawer-pill">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>
+        <span id="pdrawerAddress">—</span>
+      </div>
+      <div class="pdrawer-pill pdrawer-pill-green" id="pdrawerHours">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span id="pdrawerHoursText">—</span>
+      </div>
+    </div>
+
+    <!-- Stats Strip -->
+    <div class="pdrawer-stats">
+      <div class="pdrawer-stat">
+        <div class="pdrawer-stat-val" id="pdrawerPriceMin">—</div>
+        <div class="pdrawer-stat-lbl">Harga Min</div>
+      </div>
+      <div class="pdrawer-stat-divider"></div>
+      <div class="pdrawer-stat">
+        <div class="pdrawer-stat-val" id="pdrawerPriceMax">—</div>
+        <div class="pdrawer-stat-lbl">Harga Max</div>
+      </div>
+      <div class="pdrawer-stat-divider"></div>
+      <div class="pdrawer-stat">
+        <div class="pdrawer-stat-val" id="pdrawerKategori">—</div>
+        <div class="pdrawer-stat-lbl">Kategori</div>
+      </div>
+    </div>
+
+    <!-- Separator -->
+    <div class="pdrawer-sep"></div>
+
+    <!-- Schedule Context (shown only when opened from itinerary) -->
+    <div class="pdrawer-context" id="pdrawerContext" style="display:none;">
+      <div class="pdrawer-context-label">Dari Jadwal</div>
+      <div class="pdrawer-context-row">
+        <div class="pdrawer-context-item" id="pdrawerCtxJam">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <span>—</span>
+        </div>
+        <div class="pdrawer-context-item" id="pdrawerCtxCatatan">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          <span>—</span>
+        </div>
+      </div>
+      <div class="pdrawer-sep"></div>
+    </div>
+
+    <!-- Description -->
+    <div class="pdrawer-section">
+      <div class="pdrawer-section-title">Tentang Tempat</div>
+      <p class="pdrawer-desc" id="pdrawerDesc">—</p>
+    </div>
+
+    <!-- Map Preview -->
+    <div class="pdrawer-section" id="pdrawerMapSection" style="display:none;">
+      <div class="pdrawer-section-title">Lokasi</div>
+      <div class="pdrawer-map-thumb" id="pdrawerMapThumb">
+        <div class="pdrawer-map-pin">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="var(--secondary)"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z"/></svg>
+        </div>
+        <div class="pdrawer-map-label" id="pdrawerMapLabel">Lihat di Maps</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Sticky Footer Actions -->
+  <div class="pdrawer-footer">
+    <button class="pdrawer-btn-outline" id="pdrawerMapsBtn" onclick="openInMaps()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      Navigasi
+    </button>
+    <button class="pdrawer-btn-outline" onclick="openDetailFromDrawer()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      Lihat Detail
+    </button>
+    <button class="pdrawer-btn-primary" onclick="addDrawerPlaceToItinerary()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Tambah ke Itinerary
+    </button>
+  </div>
+</div>
+
+
 <!-- TOAST -->
 <div class="toast" id="toast">
   <div class="toast-dot"></div>
   <span id="toastMsg">Berhasil!</span>
 </div>
 
+
+<!-- ===== MODAL KONFIRMASI HAPUS ITINERARY ===== -->
+<div class="modal-overlay" id="deleteItinModal" onclick="if(event.target===this)closeModal('deleteItinModal')">
+  <div class="modal delete-itin-modal" role="dialog" aria-modal="true" aria-label="Hapus itinerary">
+    <div class="delete-itin-icon-wrap">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="3 6 5 6 21 6"/>
+        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+        <path d="M10 11v6M14 11v6"/>
+        <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+      </svg>
+    </div>
+    <div class="delete-itin-title">Hapus Itinerary?</div>
+    <div class="delete-itin-sub">Kamu akan menghapus itinerary</div>
+    <div class="delete-itin-name" id="deleteItinName">—</div>
+    <div class="delete-itin-warn">Tindakan ini tidak bisa dibatalkan. Semua destinasi dalam itinerary ini akan ikut terhapus.</div>
+    <div class="delete-itin-actions">
+      <button class="delete-itin-btn-cancel" onclick="closeModal('deleteItinModal')">Batal</button>
+      <button class="delete-itin-btn-confirm" id="deleteItinConfirmBtn" onclick="confirmDeleteItineraryAction()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+        Ya, Hapus
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL TAMBAH TEMPAT KE ITINERARY ===== -->
+<div class="modal-overlay" id="tambahTempatModal" onclick="if(event.target===this)closeTambahTempatModal()">
+  <div class="modal tt-modal" role="dialog" aria-modal="true" aria-label="Tambah tempat ke itinerary">
+    <!-- Header -->
+    <div class="tt-header">
+      <div class="tt-header-left">
+        <div class="tt-icon-wrap" id="ttIconWrap">
+          <i class="ti ti-map-pin"></i>
+        </div>
+        <div>
+          <div class="tt-title" id="ttModalTitle">Pilih Tempat</div>
+          <div class="tt-step-label" id="ttStepLabel">Langkah 1 dari 2</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="tt-step-dots" id="ttStepDots">
+          <div class="tt-dot tt-dot-active" id="ttDot1"></div>
+          <div class="tt-dot" id="ttDot2"></div>
+        </div>
+        <button class="modal-close" onclick="closeTambahTempatModal()" aria-label="Tutup">✕</button>
+      </div>
+    </div>
+
+    <!-- STEP 1: Pilih Tempat -->
+    <div id="ttStep1">
+      <div class="tt-search-wrap">
+        <i class="ti ti-search tt-search-icon"></i>
+        <input class="tt-search-input" id="ttSearchInput" type="text"
+               placeholder="Cari tempat di Bandung..."
+               oninput="ttFilterPlaces(this.value)" autocomplete="off">
+      </div>
+      <div class="tt-places-list" id="ttPlacesList" role="listbox"></div>
+    </div>
+
+    <!-- STEP 2: Detail -->
+    <div id="ttStep2" style="display:none;">
+      <!-- Tempat terpilih -->
+      <div class="tt-selected-card" id="ttSelectedCard">
+        <div class="tt-selected-icon"><i class="ti ti-map-pin"></i></div>
+        <div class="tt-selected-info">
+          <div class="tt-selected-name" id="ttSelectedName">—</div>
+          <div class="tt-selected-meta" id="ttSelectedMeta">—</div>
+        </div>
+        <i class="ti ti-circle-check-filled tt-check-icon"></i>
+      </div>
+
+      <!-- Pilih itinerary (jika tidak ada itinId) -->
+      <div id="ttItinGroup" style="display:none;margin-bottom:16px;">
+        <div class="tt-form-label"><i class="ti ti-calendar-event"></i> Pilih Itinerary</div>
+        <div class="tt-itin-list" id="ttItinList"></div>
+      </div>
+
+      <!-- Pilih Hari -->
+      <div style="margin-bottom:16px;">
+        <div class="tt-form-label"><i class="ti ti-calendar"></i> Pilih Hari</div>
+        <div class="tt-hari-grid" id="ttHariGrid"></div>
+      </div>
+
+      <!-- Jam & Catatan -->
+      <div class="tt-row2">
+        <div>
+          <div class="tt-form-label"><i class="ti ti-clock"></i> Jam <span class="tt-optional">(opsional)</span></div>
+          <input class="itin-form-input" id="ttJamInput" type="time" style="padding:10px 12px;">
+        </div>
+        <div>
+          <div class="tt-form-label"><i class="ti ti-notes"></i> Catatan <span class="tt-optional">(opsional)</span></div>
+          <input class="itin-form-input" id="ttCatatanInput" type="text" placeholder="contoh: Sarapan" style="padding:10px 12px;">
+        </div>
+      </div>
+
+      <!-- Footer actions -->
+      <div class="tt-footer">
+        <button class="tt-btn-back" onclick="ttGoToStep1()">
+          <i class="ti ti-arrow-left"></i> Kembali
+        </button>
+        <button class="tt-btn-save" id="ttSaveBtn" onclick="ttSaveItem()" disabled>
+          <i class="ti ti-check"></i> Simpan ke Itinerary
+        </button>
+      </div>
+    </div>
+
+    <!-- STEP 3: Sukses -->
+    <div id="ttStep3" style="display:none;">
+      <div class="tt-success">
+        <div class="tt-success-icon">
+          <svg class="tt-check-svg" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle class="tt-check-circle" cx="26" cy="26" r="23" stroke="#C0F11C" stroke-width="2.5" fill="none"/>
+            <polyline class="tt-check-mark" points="14,27 22,35 38,18" stroke="#C0F11C" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          </svg>
+        </div>
+        <div class="tt-success-title">Berhasil ditambahkan!</div>
+        <div class="tt-success-sub">Tempat sudah masuk ke dalam itinerary kamu.</div>
+        <div class="tt-summary" id="ttSummary"></div>
+        <button class="btn-create-itin" onclick="closeTambahTempatModal()">Selesai</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDIT PROFIL -->
+<div class="modal-overlay" id="editProfileModal" onclick="if(event.target===this)closeModal('editProfileModal')">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('editProfileModal')">✕</button>
+    <div class="modal-title">Edit Profil ✏️</div>
+    <div class="modal-sub">Perbarui informasi profilmu</div>
+    <div class="itin-form-row">
+      <label class="itin-form-label">Nama Depan</label>
+      <input type="text" id="editNamaDepan" class="itin-form-input">
+    </div>
+    <div class="itin-form-row">
+      <label class="itin-form-label">Nama Belakang</label>
+      <input type="text" id="editNamaBelakang" class="itin-form-input">
+    </div>
+    <div class="itin-form-row">
+      <label class="itin-form-label">Email</label>
+      <input type="email" id="editEmail" class="itin-form-input">
+    </div>
+    <div class="itin-form-row">
+      <label class="itin-form-label">Lokasi</label>
+      <input type="text" id="editLokasi" class="itin-form-input" placeholder="Contoh: Bandung, Indonesia">
+    </div>
+    <div class="itin-form-row">
+      <label class="itin-form-label">Bio Singkat</label>
+      <textarea id="editBio" class="itin-form-input" style="height:80px;resize:none" placeholder="Ceritakan sedikit tentang dirimu..."></textarea>
+    </div>
+    <button class="btn-create-itin" style="margin-top:10px" onclick="saveProfileChanges()">Simpan Perubahan</button>
+  </div>
+</div>
 
 </body>
 </html>
