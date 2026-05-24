@@ -26,6 +26,7 @@ app.add_middleware(
         "http://localhost:5500",    # Alternatif localhost
         "http://127.0.0.1:8000",    # Jika frontend dilayani dari FastAPI
     ],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
     )

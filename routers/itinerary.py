@@ -100,7 +100,15 @@ def get_detail_itinerary(
                 "nama"     : tempat.nama,
                 "kategori" : tempat.kategori,
                 "alamat"   : tempat.alamat,
-                "rating"   : tempat.rating
+                "rating"   : tempat.rating,
+                "deskripsi" : tempat.deskripsi,
+                "harga_min" : tempat.harga_min,
+                "harga_max" : tempat.harga_max,
+                "jam_buka"  : tempat.jam_buka,
+                "jam_tutup" : tempat.jam_tutup,
+                "latitude"  : tempat.latitude,
+                "longitude" : tempat.longitude,
+                "image_url" : tempat.image_url,
             } if tempat else None 
         })
     
@@ -267,8 +275,6 @@ def export_itinerary_pdf(
             rating,
             Paragraph(item.catatan or "-", styles['Normal'])
         ])
-    next_item = items[isx] if idx < len(items) else None
-    if next_item is None or next_item.hari != current_hari:
         
         table = Table(data, colWidths=[30, 260, 70, 60, 120])
         # styling tabel

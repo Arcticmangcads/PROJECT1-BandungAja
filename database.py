@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from os import getenv
 
 env_path = Path(__file__).parent / '.env'
-
+load_dotenv(dotenv_path=env_path)
 DATABASE_URL = os.getenv('DATABASE_URL')
 
 with open(env_path, 'r', encoding='utf-8') as f:
