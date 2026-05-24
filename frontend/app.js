@@ -82,7 +82,7 @@ async function fetchPlaceFromBackend() {
 
 let itineraries = [
   {
-    id:1, name:"Weekend Seru di Bandung", date:"2025-05-10", total_hari:2, stops:[
+    id:1, name:"Weekend Seru di Bandung", date:"2025-05-10", duration:"2 Hari", stops:[
       {name:"Gedung Merdeka", time:"08:00"},
       {name:"Museum Geologi", time:"10:30"},
       {name:"Braga City Walk", time:"12:30"},
@@ -90,14 +90,14 @@ let itineraries = [
     ]
   },
   {
-    id:2, name:"Alam & Kuliner Lembang", date:"2025-05-17", total_hari:1, stops:[
+    id:2, name:"Alam & Kuliner Lembang", date:"2025-05-17", duration:"1 Hari", stops:[
       {name:"Dusun Bambu", time:"09:00"},
       {name:"Kawah Putih", time:"12:00"},
       {name:"Cafe Taman Langit", time:"16:00"},
     ]
   },
   {
-    id:3, name:"Wisata Budaya Bandung", date:"2025-05-24", total_hari:1, stops:[
+    id:3, name:"Wisata Budaya Bandung", date:"2025-05-24", duration:"1 Hari", stops:[
       {name:"Saung Angklung Udjo", time:"10:00"},
       {name:"Museum Geologi", time:"13:00"},
       {name:"Gedung Merdeka", time:"15:30"},
@@ -1331,6 +1331,456 @@ function updateHeroStats() {
   document.getElementById('stat-wisata').innerText = `${totalWisata}+`;
 }
 
+// ===== TAMBAH TEMPAT KE ITINERARY MODAL =====
+
+let _ttItinId = null;        // itinerary yang dipilih/ditentukan
+let _ttPlaceId = null;       // tempat yang dipilih
+let _ttHari = null;          // hari yang dipilih
+
+const _ttPriceLabel = { free:'Gratis', cheap:'< 50K', mid:'50–150K', premium:'> 150K' };
+const _ttPriceClass = { free:'tt-badge-free', cheap:'tt-badge-cheap', mid:'tt-badge-mid', premium:'tt-badge-premium' };
+const _ttCatIcon = {
+  Wisata:'🏛️', Alam:'🌿', Hiburan:'🎡', Belanja:'🛍️',
+  Kuliner:'🍜', Café:'☕', Museum:'🏛', Hotel:'🏨'
+};
+
+function openTambahTempatModal(itinId = null, placeId = null) {
+  _ttItinId = itinId;
+  _ttPlaceId = null;
+  _ttHari = null;
+
+  // Reset form
+  const jamEl = document.getElementById('ttJamInput');
+  const catEl = document.getElementById('ttCatatanInput');
+  if (jamEl) jamEl.value = '';
+  if (catEl) catEl.value = '';
+
+  // Jika place sudah diketahui (dari detail page), langsung ke step 2
+  if (placeId) {
+    _ttPlaceId = placeId;
+    const place = places.find(p => p.id === placeId);
+    if (place) {
+      _ttGoToStep2(place);
+      showModal('tambahTempatModal');
+      return;
+    }
+  }
+
+  // Tampilkan step 1
+  _ttShowStep(1);
+  ttFilterPlaces('');
+  showModal('tambahTempatModal');
+  setTimeout(() => document.getElementById('ttSearchInput')?.focus(), 100);
+}
+
+function closeTambahTempatModal() {
+  closeModal('tambahTempatModal');
+  // Reset state setelah animasi
+  setTimeout(() => {
+    _ttItinId = null; _ttPlaceId = null; _ttHari = null;
+    const jamEl = document.getElementById('ttJamInput');
+    const catEl = document.getElementById('ttCatatanInput');
+    if (jamEl) jamEl.value = '';
+    if (catEl) catEl.value = '';
+    const si = document.getElementById('ttSearchInput');
+    if (si) si.value = '';
+  }, 300);
+}
+
+function _ttShowStep(n) {
+  document.getElementById('ttStep1').style.display = n === 1 ? '' : 'none';
+  document.getElementById('ttStep2').style.display = n === 2 ? '' : 'none';
+  document.getElementById('ttStep3').style.display = n === 3 ? '' : 'none';
+
+  const titles = ['Pilih Tempat', 'Detail Kunjungan', 'Berhasil! 🎉'];
+  const labels = ['Langkah 1 dari 2', 'Langkah 2 dari 2', ''];
+  document.getElementById('ttModalTitle').textContent = titles[n - 1];
+  document.getElementById('ttStepLabel').textContent = labels[n - 1];
+
+  const d1 = document.getElementById('ttDot1');
+  const d2 = document.getElementById('ttDot2');
+  const dots = document.getElementById('ttStepDots');
+  const icon = document.getElementById('ttIconWrap');
+
+  dots.style.display = n === 3 ? 'none' : '';
+  if (n === 1) { d1.className = 'tt-dot tt-dot-active'; d2.className = 'tt-dot'; icon.className = 'tt-icon-wrap'; icon.innerHTML = '<i class="ti ti-map-pin"></i>'; }
+  if (n === 2) { d1.className = 'tt-dot tt-dot-done'; d2.className = 'tt-dot tt-dot-active'; icon.className = 'tt-icon-wrap'; icon.innerHTML = '<i class="ti ti-calendar-check"></i>'; }
+  if (n === 3) {
+    icon.className = 'tt-icon-wrap tt-success-hdr'; icon.innerHTML = '<i class="ti ti-check"></i>';
+    // Re-trigger SVG stroke animation by cloning the element
+    setTimeout(() => {
+      const svg = document.querySelector('.tt-check-svg');
+      if (svg) {
+        const clone = svg.cloneNode(true);
+        svg.parentNode.replaceChild(clone, svg);
+      }
+    }, 10);
+  }
+}
+
+function ttFilterPlaces(query) {
+  const q = (query || '').toLowerCase();
+  const filtered = places.filter(p =>
+    !q || p.name.toLowerCase().includes(q) || p.area.toLowerCase().includes(q) || p.cat.toLowerCase().includes(q)
+  );
+  const el = document.getElementById('ttPlacesList');
+  if (!el) return;
+  el.innerHTML = filtered.map(p => `
+    <div class="tt-place-item${_ttPlaceId === p.id ? ' tt-selected' : ''}"
+         role="option" onclick="ttSelectPlace(${p.id})">
+      <div class="tt-place-ico">${_ttCatIcon[p.cat] || '📍'}</div>
+      <div style="flex:1;min-width:0;">
+        <div class="tt-place-name">${p.name}</div>
+        <div class="tt-place-sub">${p.area} · ${p.cat}</div>
+      </div>
+      <span class="tt-price-badge ${_ttPriceClass[p.price] || ''}">${_ttPriceLabel[p.price] || p.price}</span>
+    </div>
+  `).join('') || '<div style="text-align:center;padding:32px;color:var(--text-muted);font-size:14px;">Tempat tidak ditemukan</div>';
+}
+
+function ttSelectPlace(id) {
+  _ttPlaceId = id;
+  const place = places.find(p => p.id === id);
+  if (!place) return;
+  // Sedikit delay untuk feedback visual sebelum pindah step
+  ttFilterPlaces(document.getElementById('ttSearchInput')?.value || '');
+  setTimeout(() => _ttGoToStep2(place), 140);
+}
+
+function _ttGoToStep2(place) {
+  // Isi card tempat terpilih
+  document.getElementById('ttSelectedName').textContent = place.name;
+  document.getElementById('ttSelectedMeta').textContent = `${place.area} · ${place.cat} · ${_ttPriceLabel[place.price] || ''}`;
+
+  // Pilih itinerary (tampilkan jika tidak ada itinId)
+  const itinGroup = document.getElementById('ttItinGroup');
+  if (!_ttItinId && itineraries.length > 0) {
+    itinGroup.style.display = '';
+    _ttRenderItinList();
+  } else if (_ttItinId) {
+    itinGroup.style.display = 'none';
+  } else {
+    itinGroup.style.display = 'none';
+    showToast('Buat itinerary dulu sebelum menambahkan tempat!');
+  }
+
+  // Render hari berdasarkan durasi itinerary yang dipilih
+  _ttRenderHari();
+
+  document.getElementById('ttSaveBtn').disabled = true;
+  _ttShowStep(2);
+}
+
+function _ttRenderItinList() {
+  const el = document.getElementById('ttItinList');
+  if (!el) return;
+  el.innerHTML = itineraries.map(itin => `
+    <button class="tt-itin-btn${_ttItinId === itin.id ? ' tt-itin-active' : ''}"
+            onclick="_ttSelectItin(${itin.id})">
+      <i class="ti ti-calendar"></i>
+      <span style="flex:1;">${itin.name}</span>
+      <span style="font-size:11px;color:var(--text-muted);">${itin.duration}</span>
+    </button>
+  `).join('') || '<div style="font-size:13px;color:var(--text-muted);padding:8px 0;">Belum ada itinerary. Buat dulu!</div>';
+}
+
+function _ttSelectItin(id) {
+  _ttItinId = id;
+  _ttHari = null;
+  _ttRenderItinList();
+  _ttRenderHari();
+  document.getElementById('ttSaveBtn').disabled = true;
+}
+
+function _ttRenderHari() {
+  const grid = document.getElementById('ttHariGrid');
+  if (!grid) return;
+
+  // Tentukan jumlah hari: ambil dari durasi itinerary, minimal 1, maksimal 5
+  let maxDays = 5;
+  if (_ttItinId) {
+    const itin = itineraries.find(i => i.id === _ttItinId);
+    if (itin) {
+      const parsed = parseInt(itin.duration);
+      // "4+ Hari" → 5, "2 Hari" → 2, tidak terbaca → 5
+      if (itin.duration && itin.duration.includes('+')) {
+        maxDays = 5;
+      } else if (!isNaN(parsed) && parsed > 0) {
+        maxDays = Math.min(parsed, 5);
+      }
+    }
+  }
+
+  grid.innerHTML = Array.from({ length: maxDays }, (_, i) => `
+    <button class="tt-hari-btn${_ttHari === i + 1 ? ' tt-hari-active' : ''}"
+            onclick="_ttSelectHari(${i + 1})">Hari ${i + 1}</button>
+  `).join('');
+}
+
+function _ttSelectHari(n) {
+  _ttHari = n;
+  _ttRenderHari();
+  // Aktifkan tombol simpan hanya jika itinerary & hari sudah dipilih
+  document.getElementById('ttSaveBtn').disabled = !(_ttItinId && _ttHari);
+}
+
+function ttGoToStep1() {
+  _ttHari = null;
+  if (!document.getElementById('ttSearchInput')?.value) ttFilterPlaces('');
+  _ttShowStep(1);
+}
+
+async function ttSaveItem() {
+  if (!_ttPlaceId || !_ttItinId || !_ttHari) {
+    showToast('Pilih tempat, itinerary, dan hari terlebih dahulu');
+    return;
+  }
+  const jam = document.getElementById('ttJamInput')?.value || null;
+  const catatan = document.getElementById('ttCatatanInput')?.value.trim() || null;
+  const place = places.find(p => p.id === _ttPlaceId);
+  const itin = itineraries.find(i => i.id === _ttItinId);
+  if (!place || !itin) return;
+
+  // Hitung urutan berdasarkan stop yang sudah ada di hari ini
+  const existingInDay = itin.stops.filter(s => s.hari === _ttHari).length;
+  const urutan = existingInDay + 1;
+
+  // Update local state langsung
+  itin.stops.push({
+    name: place.name,
+    time: jam || '—',
+    hari: _ttHari,
+    urutan,
+    catatan: catatan || ''
+  });
+
+  // Kirim ke backend jika user sudah login
+  const token = localStorage.getItem('token');
+  if (token) {
+    try {
+      await addItemToItinerary(_ttItinId, _ttPlaceId, _ttHari, urutan, jam, catatan);
+    } catch (e) {
+      console.warn('Backend sync gagal, disimpan lokal:', e);
+    }
+  }
+
+  // Tampilkan summary di step 3
+  const summaryEl = document.getElementById('ttSummary');
+  if (summaryEl) {
+    summaryEl.innerHTML = `
+      <div class="tt-sum-row"><span class="tt-sum-label"><i class="ti ti-map-pin"></i> Tempat</span><span class="tt-sum-val">${place.name}</span></div>
+      <div class="tt-sum-row"><span class="tt-sum-label"><i class="ti ti-calendar-event"></i> Itinerary</span><span class="tt-sum-val">${itin.name}</span></div>
+      <div class="tt-sum-row"><span class="tt-sum-label"><i class="ti ti-calendar"></i> Hari</span><span class="tt-sum-val">Hari ${_ttHari}</span></div>
+      ${jam ? `<div class="tt-sum-row"><span class="tt-sum-label"><i class="ti ti-clock"></i> Jam</span><span class="tt-sum-val">${jam}</span></div>` : ''}
+      ${catatan ? `<div class="tt-sum-row"><span class="tt-sum-label"><i class="ti ti-notes"></i> Catatan</span><span class="tt-sum-val">${catatan}</span></div>` : ''}
+    `;
+  }
+
+  // Refresh itinerary list di background
+  if (typeof renderItineraries === 'function') renderItineraries();
+
+  _ttShowStep(3);
+}
+
+// ===== PLACE DETAIL DRAWER =====
+let _currentDrawerPlace = null;  // holds the full tempat object
+let _currentDrawerContext = null; // { jam, catatan } if opened from itinerary
+
+/**
+ * Open the place detail drawer.
+ * @param {object} tempat   - full tempat object from itinerary JSON
+ * @param {object} [ctx]    - optional schedule context { jam, catatan }
+ */
+function openPlaceDrawer(tempat, ctx) {
+  if (!tempat) return;
+  _currentDrawerPlace = tempat;
+  _currentDrawerContext = ctx || null;
+
+  // ── Hero ──────────────────────────────────────────────
+  const hero = document.getElementById('pdrawerHero');
+  if (tempat.image_url) {
+    hero.style.cssText = `background-image:url('${tempat.image_url}');background-size:cover;background-position:center;`;
+  } else {
+    const idx = tempat.id % 6;
+    const grd = [
+      'linear-gradient(135deg,#003585,#004AAD)',
+      'linear-gradient(135deg,#004AAD,#1a5fc4)',
+      'linear-gradient(135deg,#0d3d7a,#004AAD)',
+      'linear-gradient(135deg,#1a5fc4,#4a8fd4)',
+      'linear-gradient(135deg,#003585,#0a4fa0)',
+      'linear-gradient(135deg,#004AAD,#0066cc)',
+    ][idx];
+    hero.style.cssText = `background:${grd};`;
+  }
+
+  // ── Category chip ──────────────────────────────────────
+  const chip = document.getElementById('pdrawerChip');
+  chip.textContent = tempat.kategori
+    ? tempat.kategori.charAt(0).toUpperCase() + tempat.kategori.slice(1)
+    : 'Tempat';
+
+  // ── Name & Rating ──────────────────────────────────────
+  document.getElementById('pdrawerName').textContent = tempat.nama || '—';
+  const rat = parseFloat(tempat.rating) || 0;
+  document.getElementById('pdrawerRating').textContent = rat.toFixed(1);
+  // Filled stars
+  const fullS = Math.round(rat);
+  document.getElementById('pdrawerStars').textContent =
+    '★'.repeat(Math.min(fullS, 5)) + '☆'.repeat(Math.max(0, 5 - fullS));
+
+  // ── Save button state ──────────────────────────────────
+  const saved = savedPlaces.includes(tempat.id);
+  const sBtn = document.getElementById('pdrawerSaveBtn');
+  sBtn.classList.toggle('saved', saved);
+  sBtn.innerHTML = saved
+    ? `<svg width="20" height="20" viewBox="0 0 24 24" fill="#C0F11C" stroke="#C0F11C" stroke-width="2"><path d="M19 21L12 16L5 21V5C5 4.46957 5.21071 3.96086 5.58579 3.58579C5.96086 3.21071 6.46957 3 7 3H17C17.5304 3 18.0391 3.21071 18.4142 3.58579C18.7893 3.96086 19 4.46957 19 5V21Z"/></svg>`
+    : `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21L12 16L5 21V5C5 4.46957 5.21071 3.96086 5.58579 3.58579C5.96086 3.21071 6.46957 3 7 3H17C17.5304 3 18.0391 3.21071 18.4142 3.58579C18.7893 3.96086 19 4.46957 19 5V21Z"/></svg>`;
+
+  // ── Address pill ──────────────────────────────────────
+  document.getElementById('pdrawerAddress').textContent = tempat.alamat || 'Bandung';
+
+  // ── Hours pill ────────────────────────────────────────
+  const hoursPill = document.getElementById('pdrawerHours');
+  if (tempat.jam_buka && tempat.jam_tutup) {
+    document.getElementById('pdrawerHoursText').textContent =
+      `${tempat.jam_buka} – ${tempat.jam_tutup}`;
+    hoursPill.style.display = '';
+  } else {
+    hoursPill.style.display = 'none';
+  }
+
+  // ── Stats ─────────────────────────────────────────────
+  const fmt = v => v != null ? `Rp ${Number(v).toLocaleString('id-ID')}` : '—';
+  document.getElementById('pdrawerPriceMin').textContent = fmt(tempat.harga_min);
+  document.getElementById('pdrawerPriceMax').textContent = fmt(tempat.harga_max);
+  document.getElementById('pdrawerKategori').textContent =
+    tempat.kategori ? tempat.kategori.charAt(0).toUpperCase() + tempat.kategori.slice(1) : '—';
+
+  // ── Description ───────────────────────────────────────
+  document.getElementById('pdrawerDesc').textContent = tempat.deskripsi || 'Tidak ada deskripsi tersedia.';
+
+  // ── Schedule context block ────────────────────────────
+  const ctxEl = document.getElementById('pdrawerContext');
+  if (ctx && (ctx.jam || ctx.catatan)) {
+    ctxEl.style.display = '';
+    const jamEl = document.getElementById('pdrawerCtxJam');
+    const catEl = document.getElementById('pdrawerCtxCatatan');
+    jamEl.querySelector('span').textContent = ctx.jam || '—';
+    catEl.querySelector('span').textContent = ctx.catatan || '—';
+    catEl.style.display = ctx.catatan ? '' : 'none';
+    jamEl.style.display = ctx.jam ? '' : 'none';
+  } else {
+    ctxEl.style.display = 'none';
+  }
+
+  // ── Map thumb ─────────────────────────────────────────
+  const mapSec = document.getElementById('pdrawerMapSection');
+  if (tempat.latitude && tempat.longitude) {
+    mapSec.style.display = '';
+    const thumb = document.getElementById('pdrawerMapThumb');
+    // Use OpenStreetMap static-ish tile as background if available
+    const lat = tempat.latitude, lng = tempat.longitude;
+    thumb.style.backgroundImage =
+      `url("https://static-maps.yandex.ru/1.x/?lang=id_ID&ll=${lng},${lat}&z=15&l=map&size=460,140&pt=${lng},${lat},pm2rdm")`;
+    thumb.style.backgroundSize = 'cover';
+    thumb.style.backgroundPosition = 'center';
+    document.getElementById('pdrawerMapLabel').textContent = tempat.alamat || 'Lihat di Maps';
+    thumb.onclick = () => openInMaps();
+  } else {
+    mapSec.style.display = 'none';
+  }
+
+  // ── Activate ──────────────────────────────────────────
+  document.getElementById('placeDrawerOverlay').classList.add('active');
+  document.getElementById('placeDrawer').classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closePlaceDrawer() {
+  document.getElementById('placeDrawerOverlay').classList.remove('active');
+  document.getElementById('placeDrawer').classList.remove('active');
+  document.body.style.overflow = '';
+  setTimeout(() => { _currentDrawerPlace = null; _currentDrawerContext = null; }, 350);
+}
+
+async function toggleDrawerSave() {
+  if (!_currentDrawerPlace) return;
+  const token = localStorage.getItem('token');
+
+  if(!token) {
+    showToast('Silahkan login terlebih dahulu');
+    return;
+  }
+
+  const id = _currentDrawerPlace.id;
+  const sBtn = document.getElementById('pdrawerSaveBtn');
+  
+  if (savedPlaces.includes(id)) {
+    const response = await authorizedFetch(`/wishlist/${id}`, { 
+      method: 'DELETE'
+    });
+
+    if(response && response.ok) {
+      savedPlaces = savedPlaces.filter(x => x !== id);
+      showToast('Dihapus dari simpanan');
+      sBtn.classList.remove('saved');
+      sBtn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21L12 16L5 21V5C5 4.46957 5.21071 3.96086 5.58579 3.58579C5.96086 3.21071 6.46957 3 7 3H17C17.5304 3 18.0391 3.21071 18.4142 3.58579C18.7893 3.96086 19 4.46957 19 5V21Z"/></svg>`;
+      
+      // Refresh halaman Saved jika sedang terbuka
+      if(typeof renderSaved === 'function') renderSaved();
+    } 
+  } else {
+    const response = await authorizedFetch(`/wishlist/${id}`, {
+      method: 'POST'
+    });
+    
+    if(response && response.ok) {
+      savedPlaces.push(id);
+      showToast('Disimpan! ❤️');
+      sBtn.classList.add('saved');
+      sBtn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="#C0F11C" stroke="#C0F11C" stroke-width="2"><path d="M19 21L12 16L5 21V5C5 4.46957 5.21071 3.96086 5.58579 3.58579C5.96086 3.21071 6.46957 3 7 3H17C17.5304 3 18.0391 3.21071 18.4142 3.58579C18.7893 3.96086 19 4.46957 19 5V21Z"/></svg>`;
+
+      // Refresh halaman Saved jika sedang terbuka
+      if(typeof renderSaved === 'function') renderSaved();
+    }
+  }
+}
+
+function openInMaps() {
+  if (!_currentDrawerPlace) return;
+  const { latitude: lat, longitude: lng, nama } = _currentDrawerPlace;
+  if (lat && lng) {
+    window.open(`https://www.google.com/maps?q=${lat},${lng}&z=17&t=m`, '_blank');
+  } else if (nama) {
+    window.open(`https://www.google.com/maps/search/${encodeURIComponent(nama + ' Bandung')}`, '_blank');
+  }
+}
+
+function addDrawerPlaceToItinerary() {
+  if (!_currentDrawerPlace) return;
+  // Map the tempat format to places format for the modal
+  const placeForModal = {
+    id: _currentDrawerPlace.id,
+    name: _currentDrawerPlace.nama,
+    area: _currentDrawerPlace.alamat ? _currentDrawerPlace.alamat.split(',')[0] : 'Bandung',
+    cat: _currentDrawerPlace.kategori
+      ? _currentDrawerPlace.kategori.charAt(0).toUpperCase() + _currentDrawerPlace.kategori.slice(1)
+      : 'Wisata',
+    price: !_currentDrawerPlace.harga_min || _currentDrawerPlace.harga_min === 0 ? 'free'
+      : _currentDrawerPlace.harga_min < 50000 ? 'cheap'
+      : _currentDrawerPlace.harga_min <= 150000 ? 'mid' : 'premium',
+    rating: _currentDrawerPlace.rating || 0,
+    desc: _currentDrawerPlace.deskripsi || '',
+    image_url: _currentDrawerPlace.image_url || null,
+  };
+  // Inject into places if not present, then open modal
+  if (!places.find(p => p.id === placeForModal.id)) {
+    places.push(placeForModal);
+  }
+  closePlaceDrawer();
+  setTimeout(() => openTambahTempatModal(null, placeForModal.id), 380);
+}
+
 // Export fungsi ke objek global window untuk dipanggil langsung dari HTML
 window.loginUser = loginUser;
 window.logoutUser = logoutUser;
@@ -1348,6 +1798,19 @@ window.getHiddenGem = getHiddenGem;
 window.getNearby = getNearby;
 window.getStatusTempat = getStatusTempat;
 window.updateHeroStats = updateHeroStats;
+window.openPlaceDrawer = openPlaceDrawer;
+window.closePlaceDrawer = closePlaceDrawer;
+window.toggleDrawerSave = toggleDrawerSave;
+window.openInMaps = openInMaps;
+window.addDrawerPlaceToItinerary = addDrawerPlaceToItinerary;
+window.openTambahTempatModal = openTambahTempatModal;
+window.closeTambahTempatModal = closeTambahTempatModal;
+window.ttFilterPlaces = ttFilterPlaces;
+window.ttSelectPlace = ttSelectPlace;
+window.ttGoToStep1 = ttGoToStep1;
+window.ttSaveItem = ttSaveItem;
+window._ttSelectHari = _ttSelectHari;
+window._ttSelectItin = _ttSelectItin;
 
 document.addEventListener('DOMContentLoaded', () => {
   fetchPlaceFromBackend();
