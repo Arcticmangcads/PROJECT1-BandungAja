@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from os import getenv
 
 env_path = Path(__file__).parent / '.env'
-
+load_dotenv(dotenv_path=env_path)
 DATABASE_URL = os.getenv('DATABASE_URL')
 
 with open(env_path, 'r', encoding='utf-8') as f:
@@ -26,7 +26,7 @@ engine = create_engine(
     DATABASE_URL,
     pool_pre_ping=True,
     pool_recycle=300,       # Reset koneksi setiap 5 menit
-    pool_size=15,            # Batasi jumlah koneksi agar tidak membebani Supabase free tier
+    pool_size=5,            # Batasi jumlah koneksi agar tidak membebani Supabase free tier
     max_overflow=10,
     execution_options={"prepare_threshold": None},
     connect_args={

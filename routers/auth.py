@@ -1,10 +1,14 @@
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException, Security
+from fastapi import APIRouter, Depends, HTTPException, Security, UploadFile, File
 from fastapi.security import HTTPBearer
 from sqlalchemy.orm import Session
 from database import get_db
 from auth_utils import hash_password, verify_password, create_token, decode_token
-import models, schemas
+import models, schemas, os, httpx
+
+SUPABASE_URL    = os.getenv("SUPABASE_URL")
+SUPABASE_KEY    = os.getenv("SUPABASE_KEY")
+SUPABASE_BUCKET = os.getenv("SUPABASE_BUCKET", "profile-photos")
 
 router = APIRouter(prefix="/api/auth", tags=["Auth"])
 
@@ -33,7 +37,7 @@ def require_developer(current_user: models.User = Depends(get_current_user)):
         )
     return current_user
 
-# POST /register
+# POST - register
 @router.post("/register", response_model=schemas.UserResponse)
 def register(data: schemas.UserRegister, db: Session = Depends(get_db)):
     # Cek email sudah terdaftar atau belum
@@ -41,11 +45,15 @@ def register(data: schemas.UserRegister, db: Session = Depends(get_db)):
     if existing:
         raise HTTPException(status_code=400, detail="Email sudah terdaftar")
 
+    hashed_pw = hash_password(data.password)
+
     user_baru = models.User(
-        nama_depan    = data.nama_depan,
-        nama_belakang = data.nama_belakang,
-        email         = data.email,
-        password      = hash_password(data.password)
+        nama_depan        = data.nama_depan,
+        nama_belakang     = data.nama_belakang,
+        email             = data.email,
+        password          = hashed_pw,
+        image_url         = data.image_url,
+        lokasi            = data.lokasi
     )
     db.add(user_baru)
     db.commit()
@@ -71,11 +79,62 @@ def login(data: schemas.UserLogin, db: Session = Depends(get_db)):
 def get_me(current_user: models.User = Depends(get_current_user)):
     return current_user
 
+# PATCH — Update profil
 @router.patch("/me", response_model=schemas.UserResponse)
-def update_me(data: schemas.UserUpdate, db: Session = Depends(get_db),
-              current_user: models.User = Depends(get_current_user)):
-    for key, value in data.model_dump(exclude_none=True).items():
-        setattr(current_user, key, value)
+def update_profile(
+    data         : schemas.UserUpdate,
+    db           : Session     = Depends(get_db),
+    current_user : models.User = Depends(get_current_user)
+):
+    if data.nama_depan is not None:                    
+        current_user.nama_depan = data.nama_depan      
+    if data.nama_belakang is not None:                 
+        current_user.nama_belakang = data.nama_belakang 
+    if data.image_url is not None:
+        current_user.image_url = data.image_url
+    if data.lokasi is not None:
+        current_user.lokasi = data.lokasi
+
     db.commit()
     db.refresh(current_user)
     return current_user
+
+@router.post("/me/photo", response_model=schemas.UserResponse)
+async def upload_photo(
+    file         : UploadFile  = File(...),
+    db           : Session     = Depends(get_db),
+    current_user : models.User = Depends(get_current_user)
+):
+
+    # Validasi tipe file
+    if not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="File harus barupa gambar")
+
+    contents = await file.read()
+    if len(contents) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Ukuran foto maksimal 5MB")
+
+    # Nama file unik per user
+    ext        = file.filename.split(".")[-1]
+    filename   = f"user_{current_user.id}.{ext}"
+    upload_url = f"{SUPABASE_URL}/storage/v1/object/{SUPABASE_BUCKET}/{filename}"
+
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        resp = await client.put(
+            upload_url,
+            content  = contents,
+            headers  = {
+                "Authorization" : f"Bearer {SUPABASE_KEY}",
+                "Content-Type"  : file.content_type,
+                "x-upsert"      : "true"    # overwrite jika sudah ada
+            }
+        )
+        if resp.status_code not in (200, 201):
+            raise HTTPException(status_code=500, detail="Gagal upload ke Supabase")
+
+    public_url = f"{SUPABASE_URL}/storage/v1/object/public/{SUPABASE_BUCKET}/{filename}"
+    current_user.image_url = public_url
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+    

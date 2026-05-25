@@ -1,4 +1,5 @@
-from pydantic import BaseModel
+from fastapi import HTTPException
+from pydantic import BaseModel, field_validator
 from typing import Optional
 
 class TempatResponse(BaseModel):
@@ -55,23 +56,32 @@ class TempatUpdate(BaseModel):
 
 # === AUTH ===
 class UserRegister(BaseModel):
-    nama_depan    : Optional[str]   = None
-    nama_belakang : Optional[str]   = None
-    email    : str
-    password : str
+    nama_depan    : Optional[str] = None
+    nama_belakang : Optional[str] = None
+    email         : str
+    password      : str
+    image_url     : Optional[str] = None
+    lokasi        : Optional[str] = None
 
 class UserLogin(BaseModel):
     email    : str
     password : str
 
 class UserResponse(BaseModel):
-    id            : int
+    id        : int
     nama_depan    : Optional[str] = None
     nama_belakang : Optional[str] = None
     email         : str
     image_url     : Optional[str] = None
-    lokasi        : Optional[str] = None
     role          : Optional[str] = "user"
+
+    # Otomatis mengubah huruf awal menjadi kapital saat skema dibaca
+    @field_validator('role')
+    @classmethod
+    def format_role(cls, v: Optional[str]) -> Optional[str]:
+        if v:
+            return v.title()  # 'developer' -> 'Developer'
+        return v
 
     class Config:
         from_attributes = True
@@ -81,6 +91,13 @@ class UserUpdate(BaseModel):
     nama_belakang : Optional[str] = None
     image_url     : Optional[str] = None
     lokasi        : Optional[str] = None
+
+    @field_validator('image_url')
+    @classmethod
+    def validate_image_url(cls, v):
+        if v is not None and v.strip() != "" and not v.startswith(("http://", "https://")):
+            raise HTTPException("image_url harus dimulai dengan http:// atau https://")
+        return v
 
 class TokenResponse(BaseModel):
     access_token : str

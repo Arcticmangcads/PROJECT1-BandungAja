@@ -17,12 +17,16 @@ def get_wishlist(
     wishlist = db.query(models.Wishlist)\
         .filter(models.Wishlist.user_id == current_user.id)\
         .all()
+    if not wishlist:
+        return []
 
-    hasil = []
-    for item in wishlist:
-        tempat = db.query(models.Tempat).filter(models.Tempat.id == item.tempat_id).first()
-        if tempat:
-            hasil.append(tempat)
+    tempat_ids = [item.tempat_id for item in wishlist]
+    tempat_dict = {
+        t.id: t for t in db.query(models.Tempat)
+        .filter(models.Tempat.id.in_(tempat_ids)).all()
+    }
+    
+    hasil = [tempat_dict[item.tempat_id] for item in wishlist if item. tempat_id in tempat_dict]
     return hasil
 
 # POST untuk menyimpan tempat ke wishlist

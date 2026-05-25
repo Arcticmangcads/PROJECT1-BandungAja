@@ -7,10 +7,8 @@ from datetime import datetime
 from reportlab.lib.units import inch
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import inch
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib import colors
-from pydantic import Field
 from typing import Optional
 from io import BytesIO
 import models, schemas
@@ -48,7 +46,7 @@ def buat_itinerary(
     db.refresh(itinerary_baru)
     return itinerary_baru
 
-# GET untuk detail satu itinerary besarta dafter tempat per hari
+# GET untuk detail satu itinerary beserta daftar tempat per hari
 @router.get("/{itinerary_id}")
 def get_detail_itinerary(
     itinerary_id : int,
@@ -62,7 +60,6 @@ def get_detail_itinerary(
     if not itinerary:
         raise HTTPException(status_code=404, detail="Itenerary tidak ditemukan")
 
-    # Mengambil semua items dan menyusun hari
     items = db.query(models.ItineraryItem)\
         .filter(models.ItineraryItem.itinerary_id == itinerary_id)\
         .order_by(models.ItineraryItem.hari, models.ItineraryItem.urutan)\
@@ -77,11 +74,10 @@ def get_detail_itinerary(
             "jadwal"     : {}
         }
 
-    # Mengambil semua tempat sekaligus untuk menghindari N+1 query
-    tempat_id = list(set(item.tempat_id for item in items))
+    tempat_ids = list(set(item.tempat_id for item in items))
     tempat_dict = {
         t.id: t for t in db.query(models.Tempat)
-        .filter(models.Tempat.id.in_(tempat_id)).all()
+        .filter(models.Tempat.id.in_(tempat_ids)).all()
     }
 
     jadwal = {}
@@ -96,14 +92,22 @@ def get_detail_itinerary(
             "jam"     : item.jam,
             "catatan" : item.catatan,
             "tempat"  : {
-                "id"       : tempat.id,
-                "nama"     : tempat.nama,
-                "kategori" : tempat.kategori,
-                "alamat"   : tempat.alamat,
-                "rating"   : tempat.rating
-            } if tempat else None 
+                "id"        : tempat.id,
+                "nama"      : tempat.nama,
+                "kategori"  : tempat.kategori,
+                "alamat"    : tempat.alamat,
+                "rating"    : tempat.rating,
+                "deskripsi" : tempat.deskripsi,
+                "harga_min" : tempat.harga_min,
+                "harga_max" : tempat.harga_max,
+                "jam_buka"  : tempat.jam_buka,
+                "jam_tutup" : tempat.jam_tutup,
+                "latitude"  : tempat.latitude,
+                "longitude" : tempat.longitude,
+                "image_url" : tempat.image_url,
+            } if tempat else None
         })
-    
+
     return {
         "id"         : itinerary.id,
         "judul"      : itinerary.judul,
@@ -124,7 +128,6 @@ def tambah_item(
     db           : Session = Depends(get_db),
     current_user : models.User = Depends(get_current_user)
 ):
-    # Periksa itinerary user ini
     itinerary = db.query(models.Itinerary).filter(
         models.Itinerary.id      == itinerary_id,
         models.Itinerary.user_id == current_user.id
@@ -132,12 +135,10 @@ def tambah_item(
     if not itinerary:
         raise HTTPException(status_code=404, detail="Itinerary tidak ditemukan")
 
-    # Periksa tempat
     tempat = db.query(models.Tempat).filter(models.Tempat.id == tempat_id).first()
     if not tempat:
         raise HTTPException(status_code=404, detail="Tempat tidak ditemukan")
 
-    # Periksa hari agar tidak melebihi total_hari
     if hari > itinerary.total_hari:
         raise HTTPException(
             status_code=400,
@@ -171,7 +172,6 @@ def hapus_itinerary(
     if not itinerary:
         raise HTTPException(status_code=404, detail="Itinerary tidak ditemukan")
 
-    # Menghapus semua item dahulu baru menghapus itinerary
     db.query(models.ItineraryItem)\
         .filter(models.ItineraryItem.itinerary_id == itinerary_id)\
         .delete()
@@ -188,15 +188,13 @@ def hapus_item(
     db           : Session     = Depends(get_db),
     current_user : models.User = Depends(get_current_user)
 ):
-    # Periksa itinerary milik user
     itinerary = db.query(models.Itinerary).filter(
         models.Itinerary.id      == itinerary_id,
         models.Itinerary.user_id == current_user.id
     ).first()
     if not itinerary:
         raise HTTPException(status_code=404, detail="Itinerary tidak ditemukan")
-    
-    # Periksa item yang ada
+
     item = db.query(models.ItineraryItem).filter(
         models.ItineraryItem.id           == item_id,
         models.ItineraryItem.itinerary_id == itinerary_id
@@ -215,7 +213,6 @@ def export_itinerary_pdf(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
-    # Ambil data itinerary
     itinerary = db.query(models.Itinerary).filter(
         models.Itinerary.id == itinerary_id,
         models.Itinerary.user_id == current_user.id
@@ -223,7 +220,6 @@ def export_itinerary_pdf(
     if not itinerary:
         raise HTTPException(status_code=404, detail="Itinerary tidak ditemukan")
 
-    # Ambil item-item 
     items = db.query(models.ItineraryItem)\
         .filter(models.ItineraryItem.itinerary_id == itinerary_id)\
         .order_by(models.ItineraryItem.hari, models.ItineraryItem.urutan)\
@@ -232,13 +228,12 @@ def export_itinerary_pdf(
     if not items:
         raise HTTPException(status_code=404, detail="Itinerary ini belum memiliki tempat")
 
-    tempat_id = list(set(item.tempat_id for item in items))
+    tempat_ids = list(set(item.tempat_id for item in items))
     tempat_dict = {
         t.id: t for t in db.query(models.Tempat)
-        .filter(models.Tempat.id.in_(tempat_id)).all()
+        .filter(models.Tempat.id.in_(tempat_ids)).all()
     }
-    
-    # Buat PDF
+
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4,
                             rightMargin=40, leftMargin=40,
@@ -247,54 +242,52 @@ def export_itinerary_pdf(
     story = []
 
     # --- Judul ---
-    title_style = ParagraphStyle(name='Title', fontSize=18, leading=22, spaceAfter=12)
     story.append(Paragraph(f"Itinerary: {itinerary.judul}", styles['Title']))
     subtitle_style = ParagraphStyle(name='Subtitle', fontSize=12, spaceAfter=20, textColor=colors.gray)
-    story.append(Paragraph(f"Jumlah Hari: {itinerary.total_hari} | Tanggal: {itinerary.created_at}", subtitle_style))
+    story.append(Paragraph(
+        f"Jumlah Hari: {itinerary.total_hari} | Dibuat: {itinerary.created_at}",
+        subtitle_style
+    ))
     story.append(Spacer(1, 12))
 
-    # --- Tabel tempat (dengan kolom Rating) ---
+    # --- Tabel tempat ---
+    # FIX: bangun semua row dulu, Table() dibuat SETELAH loop selesai
     data = [["No", "Nama Tempat", "Jam", "Rating", "Catatan"]]
     for idx, item in enumerate(items, 1):
-        tempat = tempat_dict.get(item.tempat_id)
+        tempat = tempat_dict.get(item.tempat_id)  # FIX: pakai dict, bukan query ulang
         nama_tempat = tempat.nama if tempat else "Tidak diketahui"
         rating = f"★ {tempat.rating}" if tempat and tempat.rating else "-"
-
         data.append([
-            str(len(data) - 0), # Nomor sesuai urutan
+            str(idx),
             Paragraph(nama_tempat, styles['Normal']),
             item.jam or "-",
             rating,
             Paragraph(item.catatan or "-", styles['Normal'])
         ])
-    if next_item is None or next_item.hari != current_hari:
-        
-        table = Table(data, colWidths=[30, 260, 70, 60, 120])
-        # styling tabel
-        table_style = TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#004AAD")),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 10),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
-            ('TOPPADDING', (0, 0), (-1, 0), 8),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ('FONTSIZE', (0, 1), (-1, -1), 9),
-            ('ALIGN', (3, 0), (3, -1), 'CENTER'),  # kolom Rating di tengah
-        ])
-        table.setStyle(table_style)
-        story.append(table)
+
+    # FIX: Table dibuat di luar loop
+    table = Table(data, colWidths=[30, 260, 70, 60, 120])
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#004AAD")),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+        ('TOPPADDING', (0, 0), (-1, 0), 8),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('FONTSIZE', (0, 1), (-1, -1), 9),
+        ('ALIGN', (3, 0), (3, -1), 'CENTER'),
+    ]))
+    story.append(table)
 
     # --- Catatan Kaki ---
     story.append(Spacer(1, 30))
     story.append(Paragraph("Dibuat dengan BandungAja API", styles['Normal']))
 
-    # Build PDF
     doc.build(story)
     buffer.seek(0)
 
-    # Return sebagai streaming response
     filename = f"{itinerary.judul}.pdf"
     return StreamingResponse(
         buffer,
