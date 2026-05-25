@@ -86,12 +86,21 @@ def update_profile(
     db           : Session     = Depends(get_db),
     current_user : models.User = Depends(get_current_user)
 ):
+    if data.email and data.email != current_user.email:
+        existing_email = db.query(models.User).filter(models.User.email == data.email).first()
+        if existing_email:
+            raise HTTPException(status_code=400, detail="Email sudah digunakan oleh pengguan lain")
+        current_user.email = data.email
+        
     if data.nama_depan is not None:                    
-        current_user.nama_depan = data.nama_depan      
+        current_user.nama_depan = data.nama_depan
+        
     if data.nama_belakang is not None:                 
-        current_user.nama_belakang = data.nama_belakang 
+        current_user.nama_belakang = data.nama_belakang
+        
     if data.image_url is not None:
         current_user.image_url = data.image_url
+        
     if data.lokasi is not None:
         current_user.lokasi = data.lokasi
 

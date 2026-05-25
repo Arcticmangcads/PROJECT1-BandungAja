@@ -72,6 +72,7 @@ class UserResponse(BaseModel):
     nama_depan    : Optional[str] = None
     nama_belakang : Optional[str] = None
     email         : str
+    lokasi        : Optional[str] = None
     image_url     : Optional[str] = None
     role          : Optional[str] = "user"
 
@@ -89,14 +90,16 @@ class UserResponse(BaseModel):
 class UserUpdate(BaseModel):
     nama_depan    : Optional[str] = None
     nama_belakang : Optional[str] = None
+    email         : Optional[str] = None
     image_url     : Optional[str] = None
     lokasi        : Optional[str] = None
 
     @field_validator('image_url')
     @classmethod
     def validate_image_url(cls, v):
-        if v is not None and v.strip() != "" and not v.startswith(("http://", "https://")):
-            raise HTTPException("image_url harus dimulai dengan http:// atau https://")
+        if v is not None and v.strip() != "":
+            if not v.startswith(("http://", "https://")):
+                raise ValueError("image_url harus dimulai dengan http:// atau https://")
         return v
 
 class TokenResponse(BaseModel):

@@ -254,7 +254,7 @@ def export_itinerary_pdf(
     # FIX: bangun semua row dulu, Table() dibuat SETELAH loop selesai
     data = [["No", "Nama Tempat", "Jam", "Rating", "Catatan"]]
     for idx, item in enumerate(items, 1):
-        tempat = tempat_dict.get(item.tempat_id)  # FIX: pakai dict, bukan query ulang
+        tempat = tempat_dict.get(item.tempat_id)
         nama_tempat = tempat.nama if tempat else "Tidak diketahui"
         rating = f"★ {tempat.rating}" if tempat and tempat.rating else "-"
         data.append([
@@ -265,7 +265,6 @@ def export_itinerary_pdf(
             Paragraph(item.catatan or "-", styles['Normal'])
         ])
 
-    # FIX: Table dibuat di luar loop
     table = Table(data, colWidths=[30, 260, 70, 60, 120])
     table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#004AAD")),
