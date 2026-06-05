@@ -23,7 +23,7 @@ def get_tempat(
     sort_by : Optional[str] = Query(None, description="rating / harga_min"),
     limit   : Optional[int] = Query(None, description="Batasi jumlah hasil"),
     db      : Session       = Depends(get_db)
-    
+
     ):
         query = db.query(models.Tempat)
 
@@ -42,12 +42,20 @@ def get_tempat(
                 query = query.limit(limit)
         return query.all()
 
+<<<<<<< Updated upstream
 # Hidden Gem
 @router.get("/hidden-gem", response_model=List[schemas.TempatResponse])
 def get_hidden_gem(
         min_rating : float = Query(4.0, description="Rating minimal"),
         max_review : int   = Query(100, description="Jumlah review maksimal"),
         db         : Session = Depends(get_db) 
+=======
+# New Place
+@router.get("/new-place")
+def get_new_place(
+        tahun : Optional[int] = Query(None),
+        db    : Session       = Depends(get_db)
+>>>>>>> Stashed changes
 ):
         query = db.query(models.Tempat)\
                 .filter(models.Tempat.rating >= min_rating)\
@@ -66,7 +74,7 @@ def get_nearby(
                 .filter(models.Tempat.latitude != None)\
                 .filter(models.Tempat.longitude != None)\
                 .all()
-        
+
         hasil = []
         for tempat in semua_tempat:
                 jarak = hitung_jarak(lat, lon, tempat.latitude, tempat.longitude)
@@ -74,6 +82,32 @@ def get_nearby(
                         hasil.append(tempat)
 
         return hasil
+
+@router.get("/nearby-auto")
+def nearby_auto(radius: float = 5, db: Session = Depends(get_db)):
+    # Auto detect user location
+    try:
+        res = requests.get('http://ip-api.com/json/', timeout=5)
+        data = res.json()
+        user_lat = data['lat']
+        user_lon = data['lon']
+    except:
+        # Default Bandung
+        user_lat = -6.914744
+        user_lon = 107.609810
+
+    semua_tempat = db.query(models.Tempat)\
+        .filter(models.Tempat.latitude != None)\
+        .filter(models.Tempat.longitude != None)\
+        .all()
+
+    hasil = []
+    for tempat in semua_tempat:
+        jarak = hitung_jarak(user_lat, user_lon, tempat.latitude, tempat.longitude)
+        if jarak <= radius:
+            hasil.append(tempat)
+
+    return hasil
 
 # GET detail satu tempat berdasarkan ID
 @router.get("/{tempat_id}", response_model=schemas.TempatResponse)
@@ -116,7 +150,7 @@ def import_csv(
         file: UploadFile = File(...),
         db: Session = Depends(get_db),
         current_user : models.User = Depends(require_developer)
-):        
+):
         # Validasi eksistensi file
         if not file.filename.lower().endswith(".csv"):
                 raise HTTPException(status_code=400, detail="File harus berformat CSV")
@@ -128,7 +162,7 @@ def import_csv(
         except UnicodeDecodeError:
                 csv_str = contents.decode("latin-1")    # Jika dari LibreOffice
 
-        # Coba semua separator CSV 
+        # Coba semua separator CSV
         df = None
         for sep in [';', ',', '\t']:
                 try:
@@ -156,7 +190,7 @@ def import_csv(
                         df.columns = df.columns.str.replace('\xa0', ' ', regex=False).str.strip().str.lower()
                 except Exception as e:
                         raise HTTPException(status_code=400, detail=f"Gagal membaca CSV: {str(e)}")
-                
+
         # Kolom yang diharapkan ada di CSV
         kolom_wajib = ["nama"]
         for kolom in kolom_wajib:
@@ -177,7 +211,7 @@ def import_csv(
                         return None
                 return result
 
-        
+
         def save_float(val):
                 if val is None or (isinstance(val, float) and pd.isna(val)):
                         return None
@@ -187,7 +221,7 @@ def import_csv(
                         return float(val)
                 except (ValueError, TypeError):
                         return None
-                        
+
         def save_int(val):
                 if pd.isna(val) or (isinstance(val, float) and pd.isna(val)):
                         return None
@@ -197,12 +231,12 @@ def import_csv(
                         return float(val)
                 except (ValueError, TypeError):
                         return None
-                
+
         # Masukan ke database baris per baris
         berhasil = 0
         gagal = 0
         errors = [] # mencatat detail error
-        
+
         for idx, row in df.iterrows():
                 if pd.isna(row.get("nama")) or str(row.get("nama")).strip() == "":
                         continue
@@ -297,16 +331,3 @@ def hitung_jarak(lat1, lon1, lat2, lon2):
         a = sin(dlat/2)**2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon/2)**2
         c = 2 * atan2(sqrt(a), sqrt(1 - a))
         return R * c # Jarak dalam kilometer
-
-@router.get("/nearby-auto")
-def nearby_auto(radius: float = 5, db: Session = Depends(get_db)):
-    # Auto detect user location
-    try:
-        res = requests.get('http://ip-api.com/json/', timeout=5)
-        data = res.json()
-        user_lat = data['lat']
-        user_lon = data['lon']
-    except:
-        # Default Bandung
-        user_lat = -6.914744
-        user_lon = 107.609810

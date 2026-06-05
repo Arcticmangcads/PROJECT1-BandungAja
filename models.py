@@ -1,4 +1,3 @@
-import uuid
 from sqlalchemy import Column, Integer, String, Float, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from database import Base
@@ -8,7 +7,12 @@ class Tempat(Base):
 
     id            = Column(Integer, primary_key=True, index=True)
     nama          = Column(String, nullable=False)
+<<<<<<< Updated upstream
     kategori      = Column(String)  # wisata/kuliner
+=======
+    kategori      = Column(String)  # Wisata, Kuliner, Cafe, Belanja, Hotel, Hiburan, Alam, Museum, Cafeteria
+    sub_kategori  = Column(String)  # Optional: Kuliner, Wisata, Cafe, Alam, Hiburan, Belanja, Museum
+>>>>>>> Stashed changes
     alamat        = Column(String)
     rating        = Column(Float)
     harga_min     = Column(Integer)

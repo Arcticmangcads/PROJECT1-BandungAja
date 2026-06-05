@@ -6,6 +6,10 @@ class TempatResponse(BaseModel):
     id            : int
     nama          : str
     kategori      : Optional[str]
+<<<<<<< Updated upstream
+=======
+    sub_kategori  : Optional[str]
+>>>>>>> Stashed changes
     alamat        : Optional[str]
     rating        : Optional[float]
     harga_min     : Optional[int]
