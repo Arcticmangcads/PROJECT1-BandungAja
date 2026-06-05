@@ -8,7 +8,8 @@ class Tempat(Base):
 
     id            = Column(Integer, primary_key=True, index=True)
     nama          = Column(String, nullable=False)
-    kategori      = Column(String)  # wisata/kuliner
+    kategori      = Column(String)  # Wisata, Kuliner, Cafe, Belanja, Hotel, Hiburan, Alam, Museum, Cafeteria
+    sub-kategori  = Column(String)  # Optional: Kuliner, Wisata, Cafe, Alam, Hiburan, Belanja, Museum
     alamat        = Column(String)
     rating        = Column(Float)
     harga_min     = Column(Integer)
@@ -21,6 +22,7 @@ class Tempat(Base):
     longitude     = Column(Float)   # Nerby
     jumlah_review = Column(Integer) # Hidden Gem
     image_url     = Column(String)  # Gambar tempat
+    tahun_dibuka  = Integer
 
 class User(Base):
     __tablename__ = "user"

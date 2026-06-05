@@ -42,18 +42,20 @@ def get_tempat(
                 query = query.limit(limit)
         return query.all()
 
-# Hidden Gem
-@router.get("/hidden-gem", response_model=List[schemas.TempatResponse])
-def get_hidden_gem(
-        min_rating : float = Query(4.0, description="Rating minimal"),
-        max_review : int   = Query(100, description="Jumlah review maksimal"),
-        db         : Session = Depends(get_db) 
+# New Place
+@router.get("/new-place")
+def get_new_place(
+        tahun : Optional[int] = Query(None)
+        db    : Session       = Depends(get_db) 
 ):
-        query = db.query(models.Tempat)\
-                .filter(models.Tempat.rating >= min_rating)\
-                .filter(models.Tempat.jumlah_review <= max_review)\
-                .order_by(desc(models.Tempat.rating))
-        return query.all()
+        current_year = tahun or datetime.now().your
+
+        places = db.query(models.Tempat)\
+                 .filter(models.Tempat.tahun_dibuka == current_year)\
+                 .order_by(models.Tempat.rating/desc())\
+                 .all()
+
+        return places
 
 @router.get("/nearby", response_model=List[schemas.TempatResponse])
 def get_nearby(

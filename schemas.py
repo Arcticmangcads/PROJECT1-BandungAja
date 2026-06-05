@@ -6,6 +6,7 @@ class TempatResponse(BaseModel):
     id            : int
     nama          : str
     kategori      : Optional[str]
+    sub-kategori  : Optional[str]
     alamat        : Optional[str]
     rating        : Optional[float]
     harga_min     : Optional[int]
@@ -18,6 +19,7 @@ class TempatResponse(BaseModel):
     longitude     : Optional[float] = None  # Nerby
     jumlah_review : Optional[int]   = None  # Hidden Gem
     image_url     : Optional[str]   = None
+    tahun_dibuka  : Optional[int]
 
     class Config:
         from_attributes = True
