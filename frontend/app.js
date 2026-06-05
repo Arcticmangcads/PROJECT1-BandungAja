@@ -1,4 +1,17 @@
-const currentUser = JSON.parse(localStorage.getItem("user"));
+let currentUser = null;
+
+try {
+  const raw = localStorage.getItem("user");
+  currentUser = raw ? JSON.parse(raw) : null;
+} catch (error) {
+  // Membersihkan data korup pada storage, meminimalisir crash
+  localStorage.removeItem("user");
+  console.warn(
+    "Data user pada localStorage korup, sudah dihapus:",
+    error.message,
+  );
+}
+
 if (currentUser) {
   console.log("Login sebagai:", currentUser.nama_depan);
   // Ubah teks tombol 'Masuk' menjadi nama user di sini
@@ -129,7 +142,8 @@ const gradients = ["linear-gradient(135deg,#003585,#004AAD)", "linear-gradient(1
 let currentCategory = "";
 let savedPlaces = [1, 3, 5, 8, 10];
 let nearbyMap = null;
-let currentGemCategory = "all";
+let currentNewCategory = "all";
+let newPlaces = [];
 
 // ===== HIDDEN GEM DATA =====
 const hiddenGems = [
@@ -1063,14 +1077,27 @@ function switchProfileSection(btn, section) {
 
 // ===== HIDDEN GEM =====
 function setGemCategory(btn, cat) {
+<<<<<<< Updated upstream
   currentGemCategory = cat;
   document.querySelectorAll(".gem-filter").forEach((b) => b.classList.remove("active"));
+=======
+  let currentGemCategory = cat;
+  document
+    .querySelectorAll(".gem-filter")
+    .forEach((b) => b.classList.remove("active"));
+>>>>>>> Stashed changes
   btn.classList.add("active");
   renderHiddenGem();
 }
 
 function renderHiddenGem() {
+<<<<<<< Updated upstream
   const filtered = currentGemCategory === "all" ? hiddenGems : hiddenGems.filter((g) => g.cat === currentGemCategory);
+=======
+  const filtered = (currentGemCategory = "all"
+    ? hiddenGems
+    : hiddenGems.filter((g) => g.cat === currentGemCategory));
+>>>>>>> Stashed changes
 
   document.getElementById("gemCount").textContent = filtered.length;
 
@@ -1217,9 +1244,8 @@ function logoutUser() {
   showToast("Berhasil keluar");
   showPage("home");
   setTimeout(() => {
-    location.reload();
+    location.reload(); // Refresh untuk reset state UI
   }, 1000);
-  location.reload(); // Refresh untuk reset state UI
 }
 
 async function handleRegister() {
@@ -1514,8 +1540,10 @@ async function removeFromWhislist(tempatId) {
     }
 
     if (response.ok) {
+      savedPlaces = savedPlaces.filter((x) => x !== tempatId);
       showToast("Dihapus dari wishlist");
       if (typeof renderSaved === "function") renderSaved();
+      if (typeof filterPlaces === "function") filterPlaces();
     }
   } catch (error) {
     console.error(error);
@@ -1526,10 +1554,16 @@ async function removeFromWhislist(tempatId) {
 // ===== HIDDEN GEM & NEARBY =====
 async function getHiddenGem(minRating = 4.0, maxReview = 100) {
   try {
+<<<<<<< Updated upstream
     const response = await fetch(`${API_URL}/tempat/hidden-gem?min_rating=${minRating}&max_review=${maxReview}`);
     if (!response.ok) {
       throw new Error(`Gagal memuat hidden gem`);
       return await response.json();
+=======
+    let url = `${API_URL}/tempat/new-place`;
+    if (tahun) {
+      url += `?tahun=${tahun}`;
+>>>>>>> Stashed changes
     }
   } catch (error) {
     console.error(error);
@@ -1538,6 +1572,44 @@ async function getHiddenGem(minRating = 4.0, maxReview = 100) {
   }
 }
 
+<<<<<<< Updated upstream
+=======
+async function loadNewPlaces() {
+  const places = await getNewPlace();
+
+  const grid = document.getElementById("newPlaceGrid"); // Menyesuaikan dengan ID
+  if (!grid) {
+    return;
+  }
+
+  if (places.length === 0) {
+    grid.innerHTML =
+      '<p style="text-align:center;color:var(--text-muted)">Tidak ada tempat baru tahun ini</p>';
+    return;
+  }
+
+  grid.innerHTML = places
+    .map(
+      (p) => `
+    <div class="place-card" onclick="showPlaceDetailDrawer(${p.id})">
+        <div class="new-place-badge">✨ Baru Tahun ${p.tahun_dibuka}</div>
+        <img src="${p.image_url || "img/placeholder.jpg"}" alt="${p.nama}" onerror="this.src='img/placeholder.jpg'">
+        <div class="place-info">
+          <h3>${p.nama}</h3>
+          <p>${p.deskripsi || ""}</p>
+          <div class="place-meta">
+            <span class="place-category">${p.kategori}</span>
+            ${p.sub_kategori ? `<span class="place-sub-category">${p.sub_kategori}</span>` : ""}
+            <span class="place-rating">★ ${p.rating || "-"}</span>
+          </div>
+        </div>
+      </div>
+  `,
+    )
+    .join("");
+}
+
+>>>>>>> Stashed changes
 async function getNearby(lat, lon, radius = 5) {
   try {
     const response = await fetch(`${API_URL}/tempat/nearby?lat=${lat}&lon=${lon}&radius=${radius}`);
@@ -2042,9 +2114,28 @@ function addDrawerPlaceToItinerary() {
   const placeForModal = {
     id: _currentDrawerPlace.id,
     name: _currentDrawerPlace.nama,
+<<<<<<< Updated upstream
     area: _currentDrawerPlace.alamat ? _currentDrawerPlace.alamat.split(",")[0] : "Bandung",
     cat: _currentDrawerPlace.kategori ? _currentDrawerPlace.kategori.charAt(0).toUpperCase() + _currentDrawerPlace.kategori.slice(1) : "Wisata",
     price: !_currentDrawerPlace.harga_min || _currentDrawerPlace.harga_min === 0 ? "free" : _currentDrawerPlace.harga_min < 50000 ? "cheap" : _currentDrawerPlace.harga_min <= 150000 ? "mid" : "premium",
+=======
+    area: _currentDrawerPlace.alamat
+      ? _currentDrawerPlace.alamat.split(",")[0]
+      : "Bandung",
+    cat: _currentDrawerPlace.kategori
+      ? _currentDrawerPlace.kategori.charAt(0).toUpperCase() +
+        _currentDrawerPlace.kategori.slice(1)
+      : "Wisata",
+    price:
+      _currentDrawerPlace.harga_min == null ||
+      _currentDrawerPlace.harga_min === 0
+        ? "free"
+        : _currentDrawerPlace.harga_min < 50000
+          ? "cheap"
+          : _currentDrawerPlace.harga_min <= 150000
+            ? "mid"
+            : "premium",
+>>>>>>> Stashed changes
     rating: _currentDrawerPlace.rating || 0,
     desc: _currentDrawerPlace.deskripsi || "",
     image_url: _currentDrawerPlace.image_url || null,
@@ -2141,10 +2232,15 @@ function renderPlaceDetail() {
   // Harga
   let hargaText = "Gratis";
   if (place.harga_min != null && place.harga_max != null) {
-    hargaText = `Rp ${Number(place.harga_min).toLocaleString("id-ID")} – Rp ${Number(place.harga_max).toLocaleString("id-ID")}`;
+    hargaText = `Rp ... – Rp ...`;
   } else if (place.price) {
+<<<<<<< Updated upstream
     const priceMap = { free: "Gratis", cheap: "< Rp 50.000", mid: "Rp 50.000 – 150.000", premium: "> Rp 150.000" };
     hargaText = priceMap[place.price] || place.price;
+=======
+    // ← fallback ke price category
+    hargaText = priceMap[place.price]; // "Gratis", "< Rp 50.000", dll
+>>>>>>> Stashed changes
   }
   document.getElementById("detailPrice").textContent = hargaText;
 
@@ -2157,19 +2253,42 @@ function renderPlaceDetail() {
     : `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21L12 16L5 21V5C5 4.46957 5.21071 3.96086 5.58579 3.58579C5.96086 3.21071 6.46957 3 7 3H17C17.5304 3 18.0391 3.21071 18.4142 3.58579C18.7893 3.96086 19 4.46957 19 5V21Z"/></svg>`;
 }
 
-function toggleDetailSave() {
+async function toggleDetailSave() {
   if (!currentDetailPlace) return;
-  const id = currentDetailPlace.id;
-  const idx = savedPlaces.indexOf(id);
-  if (idx === -1) {
-    savedPlaces.push(id);
-    showToast("Ditambahkan ke wishlist ❤️");
-  } else {
-    savedPlaces.splice(idx, 1);
-    showToast("Dihapus dari wishlist");
+
+  // Cek Login
+  const token = localStorage.getItem("token");
+  if (!token) {
+    showToast("Silakan login terlebih dahulu");
+    return;
   }
-  localStorage.setItem("savedPlaces", JSON.stringify(savedPlaces));
-  renderPlaceDetail();
+
+  const id = currentDetailPlace.id;
+  const saveBtn = document.getElementById("detailSaveBtn");
+
+  if (savedPlaces.includes(id)) {
+    // LOGIKA HAPUS (Lapor ke Backend)
+    const response = await authorizedFetch(`/wishlist/${id}`, {
+      method: "DELETE",
+    });
+    if (response && response.ok) {
+      savedPlaces = savedPlaces.filter((x) => x !== id);
+      showToast("Dihapus dari simpanan");
+      saveBtn.classList.remove("saved");
+      saveBtn.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21L12 16L5 21V5C5 4.46957 5.21071 3.96086 5.58579 3.58579C5.96086 3.21071 6.46957 3 7 3H17C17.5304 3 18.0391 3.21071 18.4142 3.58579C18.7893 3.96086 19 4.46957 19 5V21Z"/></svg>`;
+    }
+  } else {
+    // LOGIKA TAMBAH (Lapor ke Backend)
+    const response = await authorizedFetch(`/wishlist/${id}`, {
+      method: "POST",
+    });
+    if (response && response.ok) {
+      savedPlaces.push(id);
+      showToast("Ditambahkan ke wishlist ❤️");
+      saveBtn.classList.add("saved");
+      saveBtn.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="#C0F11C" stroke="#C0F11C" stroke-width="2"><path d="M19 21L12 16L5 21V5C5 4.46957 5.21071 3.96086 5.58579 3.58579C5.96086 3.21071 6.46957 3 7 3H17C17.5304 3 18.0391 3.21071 18.4142 3.58579C18.7893 3.96086 19 4.46957 19 5V21Z"/></svg>`;
+    }
+  }
 }
 
 function openDetailFromDrawer() {
@@ -2220,11 +2339,7 @@ window.confirmDeleteItineraryAction = confirmDeleteItineraryAction;
 window.openDetailFromDrawer = openDetailFromDrawer;
 window.toggleDetailSave = toggleDetailSave;
 
-document.addEventListener("DOMContentLoaded", () => {
-  fetchPlaceFromBackend();
-  syncWishlist();
-  updateHeroStats();
-  showPage("home");
-});
+// NOTE: Init sudah ditangani oleh DOMContentLoaded di atas (line ~1143),
+// listener duplikat ini dihapus agar fetchPlaceFromBackend & syncWishlist tidak dipanggil 2×
 
 window.fetchPlaceFromBackend = fetchPlaceFromBackend;
