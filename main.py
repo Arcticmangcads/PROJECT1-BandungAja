@@ -1,40 +1,38 @@
+import os
+
+from dotenv import load_dotenv
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer
 from fastapi.staticfiles import StaticFiles
-from database import Base, engine
-from routers import tempat, auth, wishlist, itinerary, status
-from fastapi.middleware.cors import CORSMiddleware
-from dotenv import load_dotenv
 
-import os
+from database import Base, engine
+from routers import auth, itinerary, status, tempat, wishlist
+
 load_dotenv()
 
 security = HTTPBearer()
 
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(
-    title="BandungAja API",
-    version="1.6.2",
-    swagger_ui_init_oauth={}
-    )
+app = FastAPI(title="BandungAja API", version="1.6.2", swagger_ui_init_oauth={})
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://127.0.0.1:5500",    # Live Server (VS Code)
-        "http://localhost:5500",    # Alternatif localhost
-        "http://127.0.0.1:8000",    # Jika frontend dilayani dari FastAPI
+        "http://127.0.0.1:5500",  # Live Server (VS Code)
+        "http://localhost:5500",  # Alternatif localhost
+        "http://127.0.0.1:8000",  # Jika frontend dilayani dari FastAPI
+        "http://localhost:8000",
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    )
+)
 
-app.mount("/static", StaticFiles(
-    directory="../bandungaja-frontend",
-    html=True
-    ), name="static")
+app.mount(
+    "/static", StaticFiles(directory="../bandungaja-frontend", html=True), name="static"
+)
 
 # Routers
 app.include_router(tempat.router)
@@ -43,11 +41,14 @@ app.include_router(wishlist.router)
 app.include_router(itinerary.router)
 app.include_router(status.router)
 
+
 @app.get("/")
 def root():
     return {"message": "BandungAja API is running!"}
 
+
 frontend_path = os.getenv("FRONTEND_PATH")
 if frontend_path:
-    app.mount("/frontend", StaticFiles(directory=frontend_path, html=True), name="frontend")
-    
+    app.mount(
+        "/frontend", StaticFiles(directory=frontend_path, html=True), name="frontend"
+    )

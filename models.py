@@ -1,35 +1,39 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey
+from sqlalchemy import Column, Float, ForeignKey, Integer, String
 from sqlalchemy.dialects.postgresql import UUID
+
 from database import Base
+
 
 class Tempat(Base):
     __tablename__ = "tempat"
 
-    id            = Column(Integer, primary_key=True, index=True)
-    nama          = Column(String, nullable=False)
-<<<<<<< Updated upstream
-    kategori      = Column(String)  # wisata/kuliner
-=======
-    kategori      = Column(String)  # Wisata, Kuliner, Cafe, Belanja, Hotel, Hiburan, Alam, Museum, Cafeteria
-    sub_kategori  = Column(String)  # Optional: Kuliner, Wisata, Cafe, Alam, Hiburan, Belanja, Museum
->>>>>>> Stashed changes
+    id = Column(Integer, primary_key=True, index=True)
+    nama = Column(String, nullable=False)
+    kategori = Column(
+        String
+    )  # Wisata, Kuliner, Cafe, Belanja, Hotel, Hiburan, Alam, Museum, Cafeteria
+    sub_kategori = Column(
+        String
+    )  # Optional: Kuliner, Wisata, Cafe, Alam, Hiburan, Belanja, Museum
     alamat        = Column(String)
     rating        = Column(Float)
     harga_min     = Column(Integer)
     harga_max     = Column(Integer)
-    sumber        = Column(String)  # sumber scraping
-    deskripsi     = Column(String)  # detail tempat
-    jam_buka      = Column(String)  # waktu buka
-    jam_tutup     = Column(String)  # waktu tutup
-    latitude      = Column(Float)   # Nerby
-    longitude     = Column(Float)   # Nerby
-    jumlah_review = Column(Integer) # Hidden Gem
-    image_url     = Column(String)  # Gambar tempat
+    sumber        = Column(String)   # sumber scraping
+    deskripsi     = Column(String)   # detail tempat
+    jam_buka      = Column(String)   # waktu buka
+    jam_tutup     = Column(String)   # waktu tutup
+    latitude      = Column(Float)    # Nerby
+    longitude     = Column(Float)    # Nerby
+    jumlah_review = Column(Integer)  # Hidden Gem
+    image_url     = Column(String)   # Gambar tempat
+    tahun_dibuka  = Column(Integer)
+
 
 class User(Base):
     __tablename__ = "user"
 
-    id            = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True)
     nama_depan    = Column(String, nullable=True)
     nama_belakang = Column(String, nullable=True)
     email         = Column(String, unique=True, nullable=False)
@@ -37,6 +41,7 @@ class User(Base):
     image_url     = Column(String)
     lokasi        = Column(String)
     role          = Column(String, default="user")
+
 
 class Wishlist(Base):
     __tablename__ = "wishlist"
@@ -46,14 +51,16 @@ class Wishlist(Base):
     tempat_id  = Column(Integer, ForeignKey("tempat.id"), nullable=False)
     created_at = Column(String)
 
+
 class Itinerary(Base):
     __tablename__ = "itinerary"
 
-    id         = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True)
     user_id    = Column(Integer, ForeignKey("user.id"))
-    judul      = Column(String)    # nama rencana perjalanan
+    judul      = Column(String)  # nama rencana perjalanan
     total_hari = Column(Integer)
     created_at = Column(String)
+
 
 class ItineraryItem(Base):
     __tablename__ = "itinerary_items"
@@ -61,18 +68,21 @@ class ItineraryItem(Base):
     id           = Column(Integer, primary_key=True, index=True)
     itinerary_id = Column(Integer, ForeignKey("itinerary.id"))
     tempat_id    = Column(Integer, ForeignKey("tempat.id"))
-    hari         = Column(Integer)   # hari ke
-    urutan       = Column(Integer)   # urutan kunjungan pada hari yang sama
-    jam          = Column(String)    # waktu
+    hari         = Column(Integer)  # hari ke
+    urutan       = Column(Integer)  # urutan kunjungan pada hari yang sama
+    jam          = Column(String)  # waktu
     catatan      = Column(String)
+
 
 class StatusTempat(Base):
     __tablename__ = "status_tempat"
 
-    id         = Column(Integer, primary_key=True, index=True)
-    tempat_id  = Column(Integer, ForeignKey("tempat.id"), nullable=False)
-    status     = Column(String, nullable=False)     # buka / tutup / tutup_sementara / pindah / renovasi / insiden / tutup_permanen
-    keterangan = Column(String)                     # penjelasan detail
-    mulai      = Column(String)                     # tanggal mulai tutup
-    sampai     = Column(String)                     # tanggal buka kembali, None jika tidak menentu
-    update_at  = Column(String)                     # terakhir diupdate
+    id = Column(Integer, primary_key=True, index=True)
+    tempat_id = Column(Integer, ForeignKey("tempat.id"), nullable=False)
+    status = Column(
+        String, nullable=False
+    )  # buka / tutup / tutup_sementara / pindah / renovasi / insiden / tutup_permanen
+    keterangan = Column(String)  # penjelasan detail
+    mulai      = Column(String)  # tanggal mulai tutup
+    sampai     = Column(String)  # tanggal buka kembali, None jika tidak menentu
+    update_at  = Column(String)  # terakhir diupdate

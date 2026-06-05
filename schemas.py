@@ -1,86 +1,92 @@
-from fastapi import HTTPException
-from pydantic import BaseModel, field_validator
 from typing import Optional
 
+from fastapi import HTTPException
+from pydantic import BaseModel, field_validator
+
+
 class TempatResponse(BaseModel):
-    id            : int
-    nama          : str
-    kategori      : Optional[str]
-<<<<<<< Updated upstream
-=======
-    sub_kategori  : Optional[str]
->>>>>>> Stashed changes
-    alamat        : Optional[str]
-    rating        : Optional[float]
-    harga_min     : Optional[int]
-    harga_max     : Optional[int]
-    sumber        : Optional[str]   = None
-    deskripsi     : Optional[str]   = None  # detail tempat
-    jam_buka      : Optional[str]   = None  # waktu buka
-    jam_tutup     : Optional[str]   = None  # waktu tutup
-    latitude      : Optional[float] = None  # Nerby
-    longitude     : Optional[float] = None  # Nerby
-    jumlah_review : Optional[int]   = None  # Hidden Gem
-    image_url     : Optional[str]   = None
+    id: int
+    nama: str
+    kategori: Optional[str]
+    sub_kategori: Optional[str]
+    alamat: Optional[str]
+    rating: Optional[float]
+    harga_min: Optional[int]
+    harga_max: Optional[int]
+    sumber: Optional[str] = None
+    deskripsi: Optional[str] = None  # detail tempat
+    jam_buka: Optional[str] = None  # waktu buka
+    jam_tutup: Optional[str] = None  # waktu tutup
+    latitude: Optional[float] = None  # Nerby
+    longitude: Optional[float] = None  # Nerby
+    jumlah_review: Optional[int] = None  # Hidden Gem
+    image_url: Optional[str] = None
+    tahun_dibuka: Optional[int] = None
 
     class Config:
         from_attributes = True
 
+
 class TempatCreate(BaseModel):
-    nama          : str
-    kategori      : Optional[str]   = None
-    alamat        : Optional[str]   = None
-    rating        : Optional[float] = None
-    harga_min     : Optional[int]   = None
-    harga_max     : Optional[int]   = None
-    sumber        : Optional[str]   = None
-    deskripsi     : Optional[str]   = None  
-    jam_buka      : Optional[str]   = None  
-    jam_tutup     : Optional[str]   = None  
-    latitude      : Optional[float] = None  
-    longitude     : Optional[float] = None  
-    jumlah_review : Optional[int]   = None  
-    image_url     : Optional[str]   = None
+    nama: str
+    kategori: Optional[str] = None
+    alamat: Optional[str] = None
+    rating: Optional[float] = None
+    harga_min: Optional[int] = None
+    harga_max: Optional[int] = None
+    sumber: Optional[str] = None
+    deskripsi: Optional[str] = None
+    jam_buka: Optional[str] = None
+    jam_tutup: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    jumlah_review: Optional[int] = None
+    image_url: Optional[str] = None
+
 
 class TempatUpdate(BaseModel):
-    nama          : Optional[str]   = None
-    kategori      : Optional[str]   = None
-    alamat        : Optional[str]   = None
-    rating        : Optional[float] = None
-    harga_min     : Optional[int]   = None
-    harga_max     : Optional[int]   = None
-    sumber        : Optional[str]   = None
-    deskripsi     : Optional[str]   = None  
-    jam_buka      : Optional[str]   = None
-    jam_tutup     : Optional[str]   = None
-    latitude      : Optional[float] = None  
-    longitude     : Optional[float] = None  
-    jumlah_review : Optional[int]   = None
-    image_url     : Optional[str]   = None
+    nama: Optional[str] = None
+    kategori: Optional[str] = None
+    alamat: Optional[str] = None
+    rating: Optional[float] = None
+    harga_min: Optional[int] = None
+    harga_max: Optional[int] = None
+    sumber: Optional[str] = None
+    deskripsi: Optional[str] = None
+    jam_buka: Optional[str] = None
+    jam_tutup: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    jumlah_review: Optional[int] = None
+    image_url: Optional[str] = None
+
 
 # === AUTH ===
 class UserRegister(BaseModel):
-    nama_depan    : Optional[str] = None
-    nama_belakang : Optional[str] = None
-    email         : str
-    password      : str
-    image_url     : Optional[str] = None
-    lokasi        : Optional[str] = None
+    nama_depan: Optional[str] = None
+    nama_belakang: Optional[str] = None
+    email: str
+    password: str
+    image_url: Optional[str] = None
+    lokasi: Optional[str] = None
+
 
 class UserLogin(BaseModel):
-    email    : str
-    password : str
+    email: str
+    password: str
+
 
 class UserResponse(BaseModel):
-    id        : int
-    nama_depan    : Optional[str] = None
-    nama_belakang : Optional[str] = None
-    email         : str
-    image_url     : Optional[str] = None
-    role          : Optional[str] = "user"
+    id: int
+    nama_depan: Optional[str] = None
+    nama_belakang: Optional[str] = None
+    email: str
+    lokasi: Optional[str] = None
+    image_url: Optional[str] = None
+    role: Optional[str] = "user"
 
     # Otomatis mengubah huruf awal menjadi kapital saat skema dibaca
-    @field_validator('role')
+    @field_validator("role")
     @classmethod
     def format_role(cls, v: Optional[str]) -> Optional[str]:
         if v:
@@ -90,38 +96,44 @@ class UserResponse(BaseModel):
     class Config:
         from_attributes = True
 
-class UserUpdate(BaseModel):
-    nama_depan    : Optional[str] = None
-    nama_belakang : Optional[str] = None
-    image_url     : Optional[str] = None
-    lokasi        : Optional[str] = None
 
-    @field_validator('image_url')
+class UserUpdate(BaseModel):
+    nama_depan: Optional[str] = None
+    nama_belakang: Optional[str] = None
+    email: Optional[str] = None
+    image_url: Optional[str] = None
+    lokasi: Optional[str] = None
+
+    @field_validator("image_url")
     @classmethod
     def validate_image_url(cls, v):
-        if v is not None and v.strip() != "" and not v.startswith(("http://", "https://")):
-            raise HTTPException("image_url harus dimulai dengan http:// atau https://")
+        if v is not None and v.strip() != "":
+            if not v.startswith(("http://", "https://")):
+                raise ValueError("image_url harus dimulai dengan http:// atau https://")
         return v
 
+
 class TokenResponse(BaseModel):
-    access_token : str
-    token_type   : str
-    user         : UserResponse
+    access_token: str
+    token_type: str
+    user: UserResponse
+
 
 class StatusTempatCreate(BaseModel):
-    status     : str                    # buka / tutup / tutup_sementara / renovasi / pindah / insiden / tutup_permanen
-    keterangan : Optional[str] = None
-    mulai      : Optional[str] = None   # format: YYYY-MM-DD
-    sampai     : Optional[str] = None   # None jika tidak menentu
+    status: str  # buka / tutup / tutup_sementara / renovasi / pindah / insiden / tutup_permanen
+    keterangan: Optional[str] = None
+    mulai: Optional[str] = None  # format: YYYY-MM-DD
+    sampai: Optional[str] = None  # None jika tidak menentu
+
 
 class StatusTempatResponse(BaseModel):
-    id         : int
-    tempat_id  : int 
-    status     : str
-    keterangan : Optional[str]
-    mulai      : Optional[str]
-    sampai     : Optional[str]
-    update_at  : Optional[str]
+    id: int
+    tempat_id: int
+    status: str
+    keterangan: Optional[str]
+    mulai: Optional[str]
+    sampai: Optional[str]
+    update_at: Optional[str]
 
     class Config:
         from_attributes = True

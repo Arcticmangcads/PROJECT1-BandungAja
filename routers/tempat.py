@@ -1,105 +1,107 @@
-from sqlalchemy import func, desc, asc
-from sqlalchemy.orm import Session
-from math import radians, sin, cos, sqrt, atan2
-from fastapi import APIRouter, Depends, Query, HTTPException, UploadFile, File
-from sqlalchemy import Column, Integer, String, Float, ForeignKey
-from routers.auth import require_developer
-from typing import Optional, List
-from database import get_db
-
-import requests
-import models, schemas
-import pandas as pd
 import io
+from datetime import datetime
+from math import atan2, cos, radians, sin, sqrt
+from typing import List, Optional
+
+import pandas as pd
+import requests
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
+from sqlalchemy import Column, Float, ForeignKey, Integer, String, asc, desc
+from sqlalchemy.orm import Session
+from sqlalchemy.sql import func
+
+import models
+import schemas
+from database import get_db
+from routers.auth import require_developer
 
 router = APIRouter(prefix="/api/tempat", tags=["Tempat"])
+
 
 # GET semua tempat, dengan filter opsional
 @router.get("/", response_model=List[schemas.TempatResponse])
 def get_tempat(
     kategori: Optional[str] = Query(None, description="wisata / kuliner"),
-    budget  : Optional[int] = Query(None, description="Harga maksimal"),
-    nama    : Optional[str] = Query(None, description="Cari berdasarkan nama"),
-    sort_by : Optional[str] = Query(None, description="rating / harga_min"),
-    limit   : Optional[int] = Query(None, description="Batasi jumlah hasil"),
-    db      : Session       = Depends(get_db)
-
-    ):
-        query = db.query(models.Tempat)
-
-        if kategori:
-            query = query.filter(models.Tempat.kategori == kategori)
-        if budget:
-            query = query.filter(models.Tempat.harga_min <= budget)
-        if nama:
-            query = query.filter(models.Tempat.nama.contains(nama))
-        if sort_by == "rating":
-            query = query.order_by(desc(models.Tempat.rating))
-        elif sort_by == "harga_min":
-            query = query.order_by(asc(models.Tempat.harga_min))
-
-        if limit:
-                query = query.limit(limit)
-        return query.all()
-
-<<<<<<< Updated upstream
-# Hidden Gem
-@router.get("/hidden-gem", response_model=List[schemas.TempatResponse])
-def get_hidden_gem(
-        min_rating : float = Query(4.0, description="Rating minimal"),
-        max_review : int   = Query(100, description="Jumlah review maksimal"),
-        db         : Session = Depends(get_db) 
-=======
-# New Place
-@router.get("/new-place")
-def get_new_place(
-        tahun : Optional[int] = Query(None),
-        db    : Session       = Depends(get_db)
->>>>>>> Stashed changes
+    budget: Optional[int] = Query(None, description="Harga maksimal"),
+    nama: Optional[str] = Query(None, description="Cari berdasarkan nama"),
+    sort_by: Optional[str] = Query(None, description="rating / harga_min"),
+    limit: Optional[int] = Query(None, description="Batasi jumlah hasil"),
+    db: Session = Depends(get_db),
 ):
-        query = db.query(models.Tempat)\
-                .filter(models.Tempat.rating >= min_rating)\
-                .filter(models.Tempat.jumlah_review <= max_review)\
-                .order_by(desc(models.Tempat.rating))
-        return query.all()
+    query = db.query(models.Tempat)
+
+    if kategori:
+        query = query.filter(models.Tempat.kategori == kategori)
+    if budget:
+        query = query.filter(models.Tempat.harga_min <= budget)
+    if nama:
+        query = query.filter(models.Tempat.nama.contains(nama))
+    if sort_by == "rating":
+        query = query.order_by(desc(models.Tempat.rating))
+    elif sort_by == "harga_min":
+        query = query.order_by(asc(models.Tempat.harga_min))
+
+    if limit:
+        query = query.limit(limit)
+    return query.all()
+
+
+@router.get("/new-place")
+def get_new_place(tahun: Optional[int] = Query(None), db: Session = Depends(get_db)):
+    current_year = tahun or datetime.now().your
+
+    places = (
+        db.query(models.Tempat)
+        .filter(models.Tempat.tahun_dibuka == current_year)
+        .order_by(models.Tempat.rating / desc())
+        .all()
+    )
+
+    return places
+
 
 @router.get("/nearby", response_model=List[schemas.TempatResponse])
 def get_nearby(
-        lat     : float = Query(..., description="Latitude pengguna"),
-        lon     : float = Query(..., description="Longitude pengguna"),
-        radius  : float = Query(5.0, description="Radius dalam kilometer"),
-        db      : Session = Depends(get_db)
+    lat: float = Query(..., description="Latitude pengguna"),
+    lon: float = Query(..., description="Longitude pengguna"),
+    radius: float = Query(5.0, description="Radius dalam kilometer"),
+    db: Session = Depends(get_db),
 ):
-        semua_tempat = db.query(models.Tempat)\
-                .filter(models.Tempat.latitude != None)\
-                .filter(models.Tempat.longitude != None)\
-                .all()
+    semua_tempat = (
+        db.query(models.Tempat)
+        .filter(models.Tempat.latitude != None)
+        .filter(models.Tempat.longitude != None)
+        .all()
+    )
 
-        hasil = []
-        for tempat in semua_tempat:
-                jarak = hitung_jarak(lat, lon, tempat.latitude, tempat.longitude)
-                if jarak <= radius:
-                        hasil.append(tempat)
+    hasil = []
+    for tempat in semua_tempat:
+        jarak = hitung_jarak(lat, lon, tempat.latitude, tempat.longitude)
+        if jarak <= radius:
+            hasil.append(tempat)
 
-        return hasil
+    return hasil
+
 
 @router.get("/nearby-auto")
 def nearby_auto(radius: float = 5, db: Session = Depends(get_db)):
     # Auto detect user location
     try:
-        res = requests.get('http://ip-api.com/json/', timeout=5)
+        res = requests.get("http://ip-api.com/json/", timeout=5)
         data = res.json()
-        user_lat = data['lat']
-        user_lon = data['lon']
+        user_lat = data["lat"]
+        user_lon = data["lon"]
     except:
         # Default Bandung
         user_lat = -6.914744
         user_lon = 107.609810
 
-    semua_tempat = db.query(models.Tempat)\
-        .filter(models.Tempat.latitude != None)\
-        .filter(models.Tempat.longitude != None)\
+    semua_tempat = (
+        db.query(models.Tempat)
+        .filter(models.Tempat.latitude != None)
+        .filter(models.Tempat.longitude != None)
         .all()
+    )
 
     hasil = []
     for tempat in semua_tempat:
@@ -109,225 +111,248 @@ def nearby_auto(radius: float = 5, db: Session = Depends(get_db)):
 
     return hasil
 
+
 # GET detail satu tempat berdasarkan ID
 @router.get("/{tempat_id}", response_model=schemas.TempatResponse)
 def get_tempat_by_id(tempat_id: int, db: Session = Depends(get_db)):
     tempat = db.query(models.Tempat).filter(models.Tempat.id == tempat_id).first()
     if not tempat:
         from fastapi import HTTPException
+
         raise HTTPException(status_code=404, detail="Tempat tidak ditemukan")
     return tempat
+
 
 # POST untuk menambah satu tempat baru
 @router.post("/", response_model=schemas.TempatResponse)
 def tambah_tempat(
-        tempat       : schemas.TempatCreate,
-        db           : Session     = Depends(get_db),
-        current_user : models.User = Depends(require_developer)
+    tempat: schemas.TempatCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_developer),
 ):
-        data_baru = models.Tempat(**tempat.model_dump())
-        db.add(data_baru)
-        db.commit()
-        db.refresh(data_baru)
-        return data_baru
+    data_baru = models.Tempat(**tempat.model_dump())
+    db.add(data_baru)
+    db.commit()
+    db.refresh(data_baru)
+    return data_baru
+
 
 # POST untuk menambah banyak tempat sekaligus (dari hasil scraping)
 @router.post("/bulk", response_model=List[schemas.TempatResponse])
 def tambah_banyak_tempat(
-        tempat_list  : List[schemas.TempatCreate],
-        db           : Session     = Depends(get_db),
-        current_user : models.User = Depends(require_developer)
+    tempat_list: List[schemas.TempatCreate],
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_developer),
 ):
-        data_list = [models.Tempat(**t.model_dump()) for t in tempat_list]
-        db.add_all(data_list)
-        db.commit()
-        for data in data_list:
-                db.refresh(data)
-        return data_list
+    data_list = [models.Tempat(**t.model_dump()) for t in tempat_list]
+    db.add_all(data_list)
+    db.commit()
+    for data in data_list:
+        db.refresh(data)
+    return data_list
+
 
 @router.post("/import-csv")
 def import_csv(
-        file: UploadFile = File(...),
-        db: Session = Depends(get_db),
-        current_user : models.User = Depends(require_developer)
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_developer),
 ):
-        # Validasi eksistensi file
-        if not file.filename.lower().endswith(".csv"):
-                raise HTTPException(status_code=400, detail="File harus berformat CSV")
+    # Validasi eksistensi file
+    if not file.filename.lower().endswith(".csv"):
+        raise HTTPException(status_code=400, detail="File harus berformat CSV")
 
-        # Baca isi file CSV
-        contents = file.file.read()
+    # Baca isi file CSV
+    contents = file.file.read()
+    try:
+        csv_str = contents.decode("utf-8-sig")  # Jika dari Office
+    except UnicodeDecodeError:
+        csv_str = contents.decode("latin-1")  # Jika dari LibreOffice
+
+    # Coba semua separator CSV
+    df = None
+    for sep in [";", ",", "\t"]:
         try:
-                csv_str = contents.decode("utf-8-sig")  # Jika dari Office
-        except UnicodeDecodeError:
-                csv_str = contents.decode("latin-1")    # Jika dari LibreOffice
+            # Deteksi otomatis pemisah (koma/titik koma)
+            test_df = pd.read_csv(
+                io.StringIO(csv_str),
+                sep=sep,
+                engine="python",
+                dtype={"jam_buka": str, "jam_tutup": str},
+            )
 
-        # Coba semua separator CSV
-        df = None
-        for sep in [';', ',', '\t']:
-                try:
-                        # Deteksi otomatis pemisah (koma/titik koma)
-                        test_df = pd.read_csv(io.StringIO(csv_str), sep=sep, engine='python', dtype={
-                                "jam_buka": str,
-                                "jam_tutup": str
-                        })
+            # Validasi dengan minimal 2 kolom & kolom "nama" harus ada
+            test_df.columns = (
+                test_df.columns.str.replace("\xa0", " ", regex=False)
+                .str.strip()
+                .str.lower()
+            )
+            if len(test_df.columns) >= 2 and "nama" in test_df.columns:
+                df = test_df
+                break
+        except Exception:
+            continue
 
-                        # Validasi dengan minimal 2 kolom & kolom "nama" harus ada
-                        test_df.columns = test_df.columns.str.replace('\xa0', ' ', regex=False).str.strip().str.lower()
-                        if len(test_df.columns) >= 2 and "nama" in test_df.columns:
-                                df = test_df
-                                break
-                except Exception:
-                        continue
+    if df is None:
+        try:
+            # Biarkan pandas auto-detect
+            df = pd.read_csv(
+                io.StringIO(csv_str),
+                sep=sep,
+                engine="python",
+                dtype={"jam_buka": str, "jam_tutup": str},
+            )
+            df.columns = (
+                df.columns.str.replace("\xa0", " ", regex=False).str.strip().str.lower()
+            )
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Gagal membaca CSV: {str(e)}")
 
-        if df is None:
-                try:
-                # Biarkan pandas auto-detect
-                        df = pd.read_csv(io.StringIO(csv_str), sep=sep, engine='python', dtype={
-                                "jam_buka": str,
-                                "jam_tutup": str
-                        })
-                        df.columns = df.columns.str.replace('\xa0', ' ', regex=False).str.strip().str.lower()
-                except Exception as e:
-                        raise HTTPException(status_code=400, detail=f"Gagal membaca CSV: {str(e)}")
+    # Kolom yang diharapkan ada di CSV
+    kolom_wajib = ["nama"]
+    for kolom in kolom_wajib:
+        if kolom not in df.columns:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Kolom wajib '{kolom}' tidak ditemukan di CSV. Kolom tersedia: {list(df.columns)}",
+            )
 
-        # Kolom yang diharapkan ada di CSV
-        kolom_wajib = ["nama"]
-        for kolom in kolom_wajib:
-                if kolom not in df.columns:
-                        raise HTTPException(
-                                status_code=400,
-                                detail=f"Kolom wajib '{kolom}' tidak ditemukan di CSV. Kolom tersedia: {list(df.columns)}"
-                              )
+    # Helper function perlu didefinisikan sebelum loop
+    def save_str(val):
+        if val is None:
+            return None
+        if isinstance(val, float) and pd.isna(val):
+            return None
+        result = str(val).strip()
+        if result == "" or result.lower() == "nan":
+            return None
+        return result
 
-        # Helper function perlu didefinisikan sebelum loop
-        def save_str(val):
-                if val is None:
-                        return None
-                if isinstance(val, float) and pd.isna(val):
-                        return None
-                result = str(val).strip()
-                if result == "" or result.lower() == "nan":
-                        return None
-                return result
+    def save_float(val):
+        if val is None or (isinstance(val, float) and pd.isna(val)):
+            return None
+        if str(val).strip() == "":
+            return None
+        try:
+            return float(val)
+        except (ValueError, TypeError):
+            return None
 
+    def save_int(val):
+        if pd.isna(val) or (isinstance(val, float) and pd.isna(val)):
+            return None
+        if str(val).strip() == "":
+            return None
+        try:
+            return float(val)
+        except (ValueError, TypeError):
+            return None
 
-        def save_float(val):
-                if val is None or (isinstance(val, float) and pd.isna(val)):
-                        return None
-                if str(val).strip() == "":
-                        return None
-                try:
-                        return float(val)
-                except (ValueError, TypeError):
-                        return None
+    # Masukan ke database baris per baris
+    berhasil = 0
+    gagal = 0
+    errors = []  # mencatat detail error
 
-        def save_int(val):
-                if pd.isna(val) or (isinstance(val, float) and pd.isna(val)):
-                        return None
-                if str(val).strip() == "":
-                        return None
-                try:
-                        return float(val)
-                except (ValueError, TypeError):
-                        return None
+    for idx, row in df.iterrows():
+        if pd.isna(row.get("nama")) or str(row.get("nama")).strip() == "":
+            continue
+        try:
+            tempat = models.Tempat(
+                nama=row.get("nama").strip(),
+                kategori=row.get("kategori"),
+                sub_kategori=row.get("sub_kategori"),
+                deskripsi=save_str(row.get("deskripsi")),
+                alamat=row.get("alamat"),
+                rating=save_float(row.get("rating")),
+                harga_min=save_int(row.get("harga_min")),
+                harga_max=save_int(row.get("harga_max")),
+                sumber=row.get("sumber"),
+                jam_buka=row.get("jam_buka"),
+                jam_tutup=row.get("jam_tutup"),
+                latitude=save_float(row.get("latitude")),
+                longitude=save_float(row.get("longitude")),
+                jumlah_review=save_int(row.get("jumlah_review")),
+                image_url=row.get("image_url"),
+            )
+            db.add(tempat)
+            berhasil = berhasil + 1
+        except Exception as e:
+            gagal = gagal + 1
+            errors.append(f"Baris {idx + 2}: {str(e)}")  # +2 karena header & index 0
+    if berhasil > 0:
+        db.commit()
 
-        # Masukan ke database baris per baris
-        berhasil = 0
-        gagal = 0
-        errors = [] # mencatat detail error
+    return {
+        "kolom_dibaca": list(df.columns),
+        "message": "Import selesai",
+        "berhasil": berhasil,
+        "gagal": gagal,
+        "detail_error": errors[:5],  # menapilkan 5 error pertama (untuk debugging)
+    }
 
-        for idx, row in df.iterrows():
-                if pd.isna(row.get("nama")) or str(row.get("nama")).strip() == "":
-                        continue
-                try:
-                        tempat = models.Tempat(
-                                nama          = row.get("nama").strip(),
-                                kategori      = row.get("kategori"),
-                                deskripsi     = save_str(row.get("deskripsi")),
-                                alamat        = row.get("alamat"),
-                                rating        = save_float(row.get("rating")),
-                                harga_min     = save_int(row.get("harga_min")),
-                                harga_max     = save_int(row.get("harga_max")),
-                                sumber        = row.get("sumber"),
-                                jam_buka      = row.get("jam_buka"),
-                                jam_tutup     = row.get("jam_tutup"),
-                                latitude      = save_float(row.get("latitude")),
-                                longitude     = save_float(row.get("longitude")),
-                                jumlah_review = save_int(row.get("jumlah_review")),
-                                image_url     = row.get("image_url")
-                        )
-                        db.add(tempat)
-                        berhasil = berhasil + 1
-                except Exception as e:
-                        gagal = gagal + 1
-                        errors.append(f"Baris {idx + 2}: {str(e)}") # +2 karena header & index 0
-        if berhasil > 0:
-                db.commit()
-
-        return {
-                "kolom_dibaca" : list(df.columns),
-                "message"      : "Import selesai",
-                "berhasil"     : berhasil,
-                "gagal"        : gagal,
-                "detail_error" : errors[:5] # menapilkan 5 error pertama (untuk debugging)
-                }
 
 # PUT - edit data tempat berdasarkan ID
 @router.put("/{tempat_id}", response_model=schemas.TempatResponse)
 def update_tempat(
-        tempat_id    : int,
-        data         : schemas.TempatCreate,
-        db           : Session     = Depends(get_db),
-        current_user : models.User = Depends(require_developer)
+    tempat_id: int,
+    data: schemas.TempatCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_developer),
 ):
-        tempat = db.query(models.Tempat).filter(models.Tempat.id == tempat_id).first()
-        if not tempat:
-                raise HTTPException(status_code=404, detail="Tempat tidak ditemukan")
+    tempat = db.query(models.Tempat).filter(models.Tempat.id == tempat_id).first()
+    if not tempat:
+        raise HTTPException(status_code=404, detail="Tempat tidak ditemukan")
 
-        for key, value in data.model_dump().items():
-                setattr(tempat, key, value)
+    for key, value in data.model_dump().items():
+        setattr(tempat, key, value)
 
-        db.commit()
-        db.refresh(tempat)
-        return tempat
+    db.commit()
+    db.refresh(tempat)
+    return tempat
+
 
 # DELETE - hapus data tempat berdasarkan ID
 @router.delete("/{tempat_id}")
 def delete_tempat(
-        tempat_id    : int,
-        db           : Session     = Depends(get_db),
-        current_user : models.User = Depends(require_developer)
+    tempat_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_developer),
 ):
-        tempat = db.query(models.Tempat).filter(models.Tempat.id == tempat_id).first()
-        if not tempat:
-                raise HTTPException(status_code=404, detail="Tempat tidak ditemukan")
+    tempat = db.query(models.Tempat).filter(models.Tempat.id == tempat_id).first()
+    if not tempat:
+        raise HTTPException(status_code=404, detail="Tempat tidak ditemukan")
 
-        db.delete(tempat)
-        db.commit()
-        return {"message": f"Tempat dengan ID {tempat_id} berhasil dihapus"}
+    db.delete(tempat)
+    db.commit()
+    return {"message": f"Tempat dengan ID {tempat_id} berhasil dihapus"}
+
 
 # PATCH - edit sebagian field saja
 @router.patch("/{tempat_id}", response_model=schemas.TempatResponse)
-def patch_tempat(tempat_id: int, data: schemas.TempatUpdate, db: Session = Depends(get_db)):
-        tempat = db.query(models.Tempat).filter(models.Tempat.id == tempat_id).first()
-        if not tempat:
-                raise HTTPException(status_code=404, detail="Tempat tidak ditemukan")
+def patch_tempat(
+    tempat_id: int, data: schemas.TempatUpdate, db: Session = Depends(get_db)
+):
+    tempat = db.query(models.Tempat).filter(models.Tempat.id == tempat_id).first()
+    if not tempat:
+        raise HTTPException(status_code=404, detail="Tempat tidak ditemukan")
 
-        # Hanya update field yang diisi, skip yang None
-        for key, value in data.model_dump(exclude_none=True).items():
-                setattr(tempat, key, value)
+    # Hanya update field yang diisi, skip yang None
+    for key, value in data.model_dump(exclude_none=True).items():
+        setattr(tempat, key, value)
 
-        db.commit()
-        db.refresh(tempat)
-        return tempat
+    db.commit()
+    db.refresh(tempat)
+    return tempat
 
 
 def hitung_jarak(lat1, lon1, lat2, lon2):
-        # Haversine Formula
-        R = 6371 # Radius bumi dalam kilometer
-        dlat = radians(lat2 - lat1)
-        dlon = radians(lon2 - lon1)
-        a = sin(dlat/2)**2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon/2)**2
-        c = 2 * atan2(sqrt(a), sqrt(1 - a))
-        return R * c # Jarak dalam kilometer
+    # Haversine Formula
+    R = 6371  # Radius bumi dalam kilometer
+    dlat = radians(lat2 - lat1)
+    dlon = radians(lon2 - lon1)
+    a = (
+        sin(dlat / 2) ** 2
+        + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon / 2) ** 2
+    )
+    c = 2 * atan2(sqrt(a), sqrt(1 - a))
+    return R * c  # Jarak dalam kilometer
