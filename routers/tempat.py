@@ -47,17 +47,18 @@ def get_tempat(
 
 
 @router.get("/new-place")
-def get_new_place(tahun: Optional[int] = Query(None), db: Session = Depends(get_db)):
-    current_year = tahun or datetime.now().your
+def get_new_place(
+    tahun : Optional[int] = Query(None),
+    db    : Session       = Depends(get_db)
+):
+    qery = db.query(Tempat)
 
-    places = (
-        db.query(models.Tempat)
-        .filter(models.Tempat.tahun_dibuka == current_year)
-        .order_by(models.Tempat.rating / desc())
-        .all()
-    )
+    if tahun is not None:
+        qery = query.filter(Tempat.tahun_dibuka == tahun)
+    
+    qery = query.order_by(Tempat.tahun_dibuka.desc(), Tempat.id.desc())
 
-    return places
+    return query.all()
 
 
 @router.get("/nearby", response_model=List[schemas.TempatResponse])
