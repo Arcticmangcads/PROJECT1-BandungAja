@@ -25,6 +25,8 @@ app.add_middleware(
         "http://127.0.0.1:5500",    # Live Server (VS Code)
         "http://localhost:5500",    # Alternatif localhost
         "http://127.0.0.1:8000",    # Jika frontend dilayani dari FastAPI
+        "null",                     # ← Electron file:// protocol
+        "file://",                  # ← alternatif
     ],
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
