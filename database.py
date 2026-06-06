@@ -10,15 +10,6 @@ env_path = Path(__file__).parent / '.env'
 load_dotenv(dotenv_path=env_path)
 DATABASE_URL = os.getenv('DATABASE_URL')
 
-with open(env_path, 'r', encoding='utf-8') as f:
-    for line in f:
-        line = line.strip()
-        if not line or line.startswith('#'):
-            continue
-        if line.startswith('DATABASE_URL='):
-            DATABASE_URL = line.split('=', 1)[1].strip()
-            break
-
 if not DATABASE_URL:
     raise ValueError("DATABASE_URL tidak ditemukan di .env")
 

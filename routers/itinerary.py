@@ -269,14 +269,13 @@ def export_itinerary_pdf(
         rating = f"★ {tempat.rating}" if tempat and tempat.rating else "-"
 
         data.append([
-            str(len(data) - 0), # Nomor sesuai urutan
+            str(idx),
             Paragraph(nama_tempat, styles['Normal']),
             item.jam or "-",
             rating,
             Paragraph(item.catatan or "-", styles['Normal'])
         ])
         
-        table = Table(data, colWidths=[30, 260, 70, 60, 120])
         # styling tabel
         table_style = TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#004AAD")),
@@ -290,6 +289,7 @@ def export_itinerary_pdf(
             ('FONTSIZE', (0, 1), (-1, -1), 9),
             ('ALIGN', (3, 0), (3, -1), 'CENTER'),  # kolom Rating di tengah
         ])
+        table = Table(data, colWidths=[30, 260, 70, 60, 120])
         table.setStyle(table_style)
         story.append(table)
 

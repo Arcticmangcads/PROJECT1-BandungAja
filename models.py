@@ -23,8 +23,8 @@ class Tempat(Base):
     deskripsi     = Column(String)   # detail tempat
     jam_buka      = Column(String)   # waktu buka
     jam_tutup     = Column(String)   # waktu tutup
-    latitude      = Column(Float)    # Nerby
-    longitude     = Column(Float)    # Nerby
+    latitude      = Column(Float)    # Nearby
+    longitude     = Column(Float)    # Nearby
     jumlah_review = Column(Integer)  # Hidden Gem
     image_url     = Column(String)   # Gambar tempat
     tahun_dibuka  = Column(Integer)

@@ -51,12 +51,14 @@ def get_new_place(
     tahun : Optional[int] = Query(None),
     db    : Session       = Depends(get_db)
 ):
-    qery = db.query(Tempat)
+    query = db.query(models.Tempat)
+
+    query = query.filter(models.Tempat.tahun_dibuka.isnot(None))
 
     if tahun is not None:
-        qery = query.filter(Tempat.tahun_dibuka == tahun)
+        query = query.filter(models.Tempat.tahun_dibuka == tahun)
     
-    qery = query.order_by(Tempat.tahun_dibuka.desc(), Tempat.id.desc())
+    query = query.order_by(models.Tempat.tahun_dibuka.desc(), models.Tempat.id.desc())
 
     return query.all()
 
