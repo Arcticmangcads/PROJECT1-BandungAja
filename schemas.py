@@ -21,6 +21,7 @@ class TempatResponse(BaseModel):
     longitude: Optional[float] = None  # Nerby
     jumlah_review: Optional[int] = None  # Hidden Gem
     image_url: Optional[str] = None
+    google_maps: Optional[str] = None
     tahun_dibuka: Optional[int] = None
 
     class Config:
@@ -42,6 +43,9 @@ class TempatCreate(BaseModel):
     longitude: Optional[float] = None
     jumlah_review: Optional[int] = None
     image_url: Optional[str] = None
+    google_maps: Optional[str] = None
+    tahun_dibuka: Optional[int] = None
+    sub_kategori: Optional[str] = None
 
 
 class TempatUpdate(BaseModel):
@@ -59,6 +63,9 @@ class TempatUpdate(BaseModel):
     longitude: Optional[float] = None
     jumlah_review: Optional[int] = None
     image_url: Optional[str] = None
+    google_maps: Optional[str] = None
+    tahun_dibuka: Optional[int] = None
+    sub_kategori: Optional[str] = None
 
 
 # === AUTH ===

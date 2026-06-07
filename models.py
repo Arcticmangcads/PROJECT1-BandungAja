@@ -27,6 +27,7 @@ class Tempat(Base):
     longitude     = Column(Float)    # Nearby
     jumlah_review = Column(Integer)  # Hidden Gem
     image_url     = Column(String)   # Gambar tempat
+    google_maps   = Column(String)
     tahun_dibuka  = Column(Integer)
 
 
