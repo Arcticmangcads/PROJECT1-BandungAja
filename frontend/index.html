@@ -31,9 +31,7 @@
     <button class="nav-link" onclick="showPage('top10')" data-page="top10">Top 10</button>
     <button class="nav-link" onclick="showPage('saved')" data-page="saved">Saved</button>
     <button class="nav-link" onclick="showPage('itinerary')" data-page="itinerary">Itinerary</button>
-    <button class="nav-link" onclick="showPage('hiddengem')" data-page="hiddengem">
-      <span>New Place</span>
-    </button>
+    <button class="nav-link" onclick="showPage('newplace')" data-page="newplace">New Place</button>
   </div>
   <div class="nav-right">
     <button class="btn-outline" onclick="showModal('loginModal')">Masuk</button>
@@ -338,7 +336,7 @@
 </div>
 
 <!-- ===== HIDDEN GEM PAGE ===== -->
-<div class="page" id="page-hiddengem">
+<div class="page" id="page-newplace">
   <div class="gem-header">
     <div class="gem-header-top">
       <div class="gem-icon-wrap">
@@ -360,24 +358,24 @@
       </div>
     </div>
     <div class="gem-stats-row">
-      <div class="gem-stat"><span id="gemCount">0</span><small>Tempat Baru</small></div>
+      <div class="gem-stat"><span id="newPlaceCount">0</span><small>Tempat Baru</small></div>
       <div class="gem-stat"><span id="gemAvgRating">4.5★</span><small>Rata-rata Rating</small></div>
       <div class="gem-stat"><span id="gemTotalVisits">0</span><small>Total Kunjungan</small></div>
     </div>
     <!-- Kategori Filter -->
     <div class="gem-filter-row">
-      <button class="gem-filter active" onclick="setGemCategory(this,'all')" data-gemcat="all">✨ Semua</button>
-      <button class="gem-filter" onclick="setGemCategory(this,'Alam')" data-gemcat="Alam">🌿 Alam</button>
-      <button class="gem-filter" onclick="setGemCategory(this,'Kuliner')" data-gemcat="Kuliner">🍜 Kuliner</button>
-      <button class="gem-filter" onclick="setGemCategory(this,'Café')" data-gemcat="Café">☕ Café</button>
-      <button class="gem-filter" onclick="setGemCategory(this,'Wisata')" data-gemcat="Wisata">🏛️ Wisata</button>
-      <button class="gem-filter" onclick="setGemCategory(this,'Hiburan')" data-gemcat="Hiburan">🎡 Hiburan</button>
-      <button class="gem-filter" onclick="setGemCategory(this,'Belanja')" data-gemcat="Belanja">🛍️ Belanja</button>
-      <button class="gem-filter" onclick="setGemCategory(this,'Museum')" data-gemcat="Museum">🏛 Museum</button>
+      <button class="gem-filter active" onclick="setNewCategory(this,'all')" data-gemcat="all">✨ Semua</button>
+      <button class="gem-filter" onclick="setNewCategory(this,'Alam')" data-gemcat="Alam">🌿 Alam</button>
+      <button class="gem-filter" onclick="setNewCategory(this,'Kuliner')" data-gemcat="Kuliner">🍜 Kuliner</button>
+      <button class="gem-filter" onclick="setNewCategory(this,'Café')" data-gemcat="Café">☕ Café</button>
+      <button class="gem-filter" onclick="setNewCategory(this,'Wisata')" data-gemcat="Wisata">🏛️ Wisata</button>
+      <button class="gem-filter" onclick="setNewCategory(this,'Hiburan')" data-gemcat="Hiburan">🎡 Hiburan</button>
+      <button class="gem-filter" onclick="setNewCategory(this,'Belanja')" data-gemcat="Belanja">🛍️ Belanja</button>
+      <button class="gem-filter" onclick="setNewCategory(this,'Museum')" data-gemcat="Museum">🏛 Museum</button>
     </div>
   </div>
   <div class="gem-content">
-    <div class="gem-grid" id="gemGrid"></div>
+    <div class="gem-grid" id="newPlaceGrid"></div>
   </div>
 </div>
 
@@ -586,7 +584,7 @@
 
       <!-- Tombol Aksi -->
       <div class="detail-actions">
-        <button class="btn-primary" style="flex: 1;" onclick="showToast('Navigasi GPS segera hadir!')">
+          <button class="pdrawer-btn-outline" onclick="openGoogleMaps(_currentDrawerPlace)">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
           Navigasi GPS
         </button>

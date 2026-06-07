@@ -473,7 +473,7 @@ const pageBgMap = {
   saved: "bg-saved",
   itinerary: "bg-itinerary",
   profile: "bg-profile",
-  hiddengem: "bg-hiddengem",
+  newplace: "bg-newplace",
 };
 
 // ===== PAGE NAVIGATION =====
@@ -522,7 +522,7 @@ async function showPage(pageId) {
     if (pageId === "top10") renderTop10();
     if (pageId === "profile") renderProfile();
     if (pageId === "home") initHome();
-    if (pageId === "newPlace") loadNewPlaces();
+    if (pageId === "newplace") loadNewPlaces();
 
     // Trigger fade animations
     setTimeout(() => {
@@ -1522,22 +1522,25 @@ function switchProfileSection(btn, section) {
   }
 }
 
-// ===== HIDDEN GEM =====
-function setGemCategory(btn, cat) {
-  let currentGemCategory = cat;
+// ===== NEW PLACE =====
+function setNewCategory(btn, cat) {
+  currentNewCategory = cat;
   document
     .querySelectorAll(".gem-filter")
     .forEach((b) => b.classList.remove("active"));
   btn.classList.add("active");
-  renderHiddenGem();
+  renderNewPlace();
 }
 
-function renderHiddenGem() {
-  const filtered = (currentNewCategory = "all"
-    ? hiddenGems
-    : hiddenGems.filter((g) => g.cat === currentGemCategory));
+function renderNewPlace() {
+  const gemData = encodeURIComponent(JSON.stringify(gem));
 
-  document.getElementById("gemCount").textContent = filtered.length;
+  const filtered =
+    currentNewCategory === "all"
+      ? newPlaces
+      : newPlaces.filter((g) => g.kategori === currentNewCategory);
+
+  document.getElementById("newPlaceCount").textContent = filtered.length;
 
   const priceGradients = [
     "linear-gradient(135deg,#003585 0%,#1a5fc4 60%,rgba(192,241,28,0.15) 100%)",
@@ -1554,7 +1557,7 @@ function renderHiddenGem() {
     Seni: "🎨",
   };
 
-  document.getElementById("gemGrid").innerHTML =
+  document.getElementById("newPlaceGrid").innerHTML =
     filtered
       .map((gem, i) => {
         // Logika Gambar: Gunakan image_url jika ada, jika tidak pakai gradien warna
@@ -1563,7 +1566,7 @@ function renderHiddenGem() {
           : `background: ${priceGradients[i % priceGradients.length]};`;
 
         return `
-    <div class="gem-card" onclick="showGemDetail(${gem.id})">
+    <div class="gem-card" onclick="openPlaceDrawer(JSON.parse(decodeURIComponent('${gemData}')), null)">
       <div class="gem-card-img" style="${gemBg}">
         <div class="gem-card-badge">${gem.badge}</div>
         <div class="gem-card-secret">
@@ -1595,16 +1598,16 @@ function renderHiddenGem() {
     `
   <div style="grid-column:1/-1;text-align:center;padding:80px 20px;color:var(--text-muted)">
     <div style="font-size:48px;margin-bottom:16px">💎</div>
-    <div style="font-size:18px;font-weight:700;margin-bottom:8px">Belum ada Hidden Gem di kategori ini</div>
+    <div style="font-size:18px;font-weight:700;margin-bottom:8px">Belum ada New Place di kategori ini</div>
     <div style="font-size:14px">Coba kategori lain atau jelajahi semua!</div>
   </div>
 `;
 }
 
-function showGemDetail(id) {
-  const gem = hiddenGems.find((g) => g.id === id);
-  if (!gem) return;
-  showToast(`🔓 Membuka ${gem.name}...`);
+function showNewPlaceDetail(id) {
+  const place = newPlaces.find((g) => g.id === id);
+  if (!place) return;
+  showToast(`🔓 Membuka ${place.nama}...`);
 }
 
 // ===== MODAL =====
@@ -2076,13 +2079,11 @@ async function getNewPlace(tahun = null) {
 
 async function loadNewPlaces() {
   const tahun = document.getElementById("newPlaceYearFilter")?.value || null;
-  const tahunNum = tahun ? parseInt(tahun) : null;
-  const places = await getNewPlace(2026);
+  const tahunNum = tahun ? parseInt(tahun) : 2026; // ← default 2026
+  const places = await getNewPlace(tahunNum);
+  newPlaces = places;
 
-  const grid = document.getElementById("newPlaceGrid"); // Menyesuaikan dengan ID
-  if (!grid) {
-    return;
-  }
+  const grid = document.getElementById("newPlaceGrid");
 
   if (places.length === 0) {
     grid.innerHTML =
@@ -2091,23 +2092,33 @@ async function loadNewPlaces() {
   }
 
   grid.innerHTML = places
-    .map(
-      (p) => `
-    <div class="place-card" onclick="showPlaceDetailDrawer(${p.id})">
-        <div class="new-place-badge">✨ Baru Tahun ${p.tahun_dibuka}</div>
-        <img src="${p.image_url || "img/placeholder.jpg"}" alt="${p.nama}" onerror="this.src='img/placeholder.jpg'">
-        <div class="place-info">
-          <h3>${p.nama}</h3>
-          <p>${p.deskripsi || ""}</p>
-          <div class="place-meta">
-            <span class="place-category">${p.kategori}</span>
-            ${p.sub_kategori ? `<span class="place-sub-category">${p.sub_kategori}</span>` : ""}
-            <span class="place-rating">★ ${p.rating || "-"}</span>
-          </div>
+    .map((p, i) => {
+      const pData = encodeURIComponent(JSON.stringify(p));
+      const g = gradients[i % gradients.length];
+      const bgStyle = p.image_url
+        ? `background-image:url('${p.image_url}');background-size:cover;background-position:center;`
+        : `background:${g};`;
+
+      return `
+      <div class="place-card" onclick="openPlaceDrawer(JSON.parse(decodeURIComponent('${pData}')), null)">
+        <div class="place-img">
+          <div class="place-img-bg" style="${bgStyle}"></div>
+          <div class="place-badge">✨ ${p.tahun_dibuka || "Baru"}</div>
+          <button class="place-bookmark" onclick="event.stopPropagation();toggleDrawerSave(${p.id})">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="${savedPlaces.includes(p.id) ? "#C0F11C" : "none"}" stroke="${savedPlaces.includes(p.id) ? "#C0F11C" : "white"}" stroke-width="2"><path d="M19 21L12 16L5 21V5C5 4.46957 5.21071 3.96086 5.58579 3.58579C5.96086 3.21071 6.46957 3 7 3H17C17.5304 3 18.0391 3.21071 18.4142 3.58579C18.7893 3.96086 19 4.46957 19 5V21Z"/></svg>
+          </button>
         </div>
-      </div>
-  `,
-    )
+        <div class="place-info">
+          <div class="place-name">${p.nama}</div>
+          <div class="place-meta">
+            <div class="place-rating">★ ${p.rating || "-"}</div>
+            <div class="place-area">📍 ${p.alamat ? p.alamat.split(",")[0] : "Bandung"}</div>
+            <div class="place-price">${p.kategori || ""}</div>
+          </div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:6px;line-height:1.4">${(p.deskripsi || "").substring(0, 80)}${(p.deskripsi || "").length > 80 ? "..." : ""}</div>
+        </div>
+      </div>`;
+    })
     .join("");
 }
 
@@ -2127,7 +2138,7 @@ async function getNearby(lat, lon, radius = 5) {
   }
 }
 
-// ===== HIDDEN GEM & NEARBY =====
+// ===== NEW PLACE & NEARBY =====
 async function getStatusTempat(tempatId) {
   try {
     const response = await fetch(`${API_URL}/status/${tempatId}`);
@@ -2897,6 +2908,20 @@ async function updateProfile() {
   }
 }
 
+function openGoogleMaps(place) {
+  const url = place?.google_maps
+    ? place.google_maps
+    : place?.latitude && place?.longitude
+      ? `https://www.google.com/maps/search/?api=1&query=${place.latitude},${place.longitude}`
+      : null;
+
+  if (!url) {
+    showToast("Lokasi tidak tersedia");
+    return;
+  }
+  window.open(url, "_blank");
+}
+
 // Export fungsi ke objek global window untuk dipanggil langsung dari HTML
 window.loginUser = loginUser;
 window.logoutUser = logoutUser;
@@ -2939,6 +2964,7 @@ window.confirmDeleteItineraryAction = confirmDeleteItineraryAction;
 window.openDetailFromDrawer = openDetailFromDrawer;
 window.toggleDetailSave = toggleDetailSave;
 window.updateProfile = updateProfile;
+window.openGoogleMaps = openGoogleMaps;
 
 // NOTE: Init sudah ditangani oleh DOMContentLoaded di atas (line ~1143),
 // listener duplikat ini dihapus agar fetchPlaceFromBackend & syncWishlist tidak dipanggil 2×
