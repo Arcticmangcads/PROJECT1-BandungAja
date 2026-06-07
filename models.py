@@ -9,7 +9,7 @@ class Tempat(Base):
     id            = Column(Integer, primary_key=True, index=True)
     nama          = Column(String, nullable=False)
     kategori      = Column(String)  # Wisata, Kuliner, Cafe, Belanja, Hotel, Hiburan, Alam, Museum, Cafeteria
-    sub-kategori  = Column(String)  # Optional: Kuliner, Wisata, Cafe, Alam, Hiburan, Belanja, Museum
+    sub_kategori  = Column(String)  # Optional: Kuliner, Wisata, Cafe, Alam, Hiburan, Belanja, Museum
     alamat        = Column(String)
     rating        = Column(Float)
     harga_min     = Column(Integer)
