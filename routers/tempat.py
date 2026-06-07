@@ -45,7 +45,7 @@ def get_tempat(
 # New Place
 @router.get("/new-place")
 def get_new_place(
-        tahun : Optional[int] = Query(None)
+        tahun : Optional[int] = Query(None),
         db    : Session       = Depends(get_db) 
 ):
         current_year = tahun or datetime.now().your
